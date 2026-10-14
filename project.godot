@@ -15,6 +15,10 @@ run/main_scene="res://network_testing.tscn"
 config/features=PackedStringArray("4.8", "GL Compatibility")
 config/icon="res://icon.svg"
 
+[autoload]
+
+Global="*uid://gm6sderr5qrs"
+
 [display]
 
 window/stretch/mode="canvas_items"

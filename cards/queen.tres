@@ -4,4 +4,4 @@
 
 [resource]
 script = ExtResource("1_fkep1")
-type = 2
+data = 2

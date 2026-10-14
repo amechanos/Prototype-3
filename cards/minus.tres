@@ -4,4 +4,4 @@
 
 [resource]
 script = ExtResource("1_5lghr")
-operation = 1
+data = 5

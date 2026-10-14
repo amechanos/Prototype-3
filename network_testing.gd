@@ -9,6 +9,7 @@ var _connection_active := false
 @onready var join_address: LineEdit = %JoinAddress
 @onready var join_button: Button = %JoinButton
 @onready var disconnect_button: Button = %DisconnectButton
+@onready var play_button: Button = %PlayButton
 @onready var status_label: Label = %Status
 @onready var players_label: Label = %Players
 @onready var ip_label: Label = %IP
@@ -74,19 +75,45 @@ func _on_disconnect_pressed() -> void:
 	_set_status("Disconnected.")
 
 
+func _on_play_pressed() -> void:
+	if multiplayer.multiplayer_peer == null:
+		_open_card_board()
+	elif multiplayer.is_server():
+		if multiplayer.get_peers().is_empty():
+			_set_status("Wait for another player to join before starting.", true)
+			return
+		_start_card_board.rpc()
+	else:
+		_set_status("Wait for the host to start the shared board.")
+
+
+func _open_card_board() -> void:
+	var error := get_tree().change_scene_to_file("res://board.tscn")
+	if error != OK:
+		push_error("Could not open the card board: %s" % error_string(error))
+
+
+@rpc("authority", "call_local", "reliable")
+func _start_card_board() -> void:
+	_open_card_board()
+
+
 func _on_peer_connected(peer_id: int) -> void:
 	_update_players()
+	_set_connected_controls(_connection_active)
 	if multiplayer.is_server():
 		_set_status("Player %d joined. The 1v1 room is ready." % peer_id)
 
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	_update_players()
+	_set_connected_controls(_connection_active)
 	if multiplayer.is_server():
 		_set_status("Player %d disconnected. Waiting for another player." % peer_id)
 
 
 func _on_connected_to_server() -> void:
+	_set_connected_controls(_connection_active)
 	_set_status("Connected to the host. Waiting for the game to start.")
 	_update_players()
 
@@ -113,6 +140,9 @@ func _set_connected_controls(connected: bool) -> void:
 	join_button.disabled = connected
 	join_address.editable = not connected
 	disconnect_button.disabled = not connected
+	play_button.disabled = connected and (
+		not multiplayer.is_server() or multiplayer.get_peers().is_empty()
+	)
 
 
 func _set_status(message: String, is_error: bool = false) -> void:
