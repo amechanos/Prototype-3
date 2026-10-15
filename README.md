@@ -38,6 +38,8 @@ firewall may need to allow inbound UDP traffic on port `7000`.
   clicked cards into the collector's personal deck.
 - Take turns drawing three concealed number cards or one visible special card;
   synchronize turns and draws over the existing LAN host connection.
+- Show each player's collected cards in a single-row table hand, allow local
+  card selection, and keep opponents' cards face down.
 - No automatic LAN discovery or internet matchmaking.
 
 ## Repository notes

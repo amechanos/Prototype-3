@@ -1,5 +1,7 @@
 [gd_scene format=3 uid="uid://4fhnhk28s748"]
 
+[ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://table.gd" id="1_jd0nb"]
+
 [node name="table" type="Control" unique_id=415757337]
 layout_mode = 3
 anchors_preset = 15
@@ -7,37 +9,89 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_jd0nb")
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1523118623]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = -24.0
-offset_bottom = -24.0
-grow_horizontal = 2
-grow_vertical = 2
+[node name="TargetNumber" type="Label" parent="." unique_id=531472384]
+layout_mode = 0
+offset_left = 512.0
+offset_top = 256.0
+offset_right = 640.0
+offset_bottom = 384.0
+theme_override_font_sizes/font_size = 56
+text = "21"
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="Layout" type="VBoxContainer" parent="MarginContainer" unique_id=1074831067]
+[node name="TargetText" type="Label" parent="." unique_id=472617942]
+layout_mode = 0
+offset_left = 512.0
+offset_top = 192.0
+offset_right = 640.0
+offset_bottom = 256.0
+text = "Target Number"
+horizontal_alignment = 1
+vertical_alignment = 2
+
+[node name="playerCards" type="MarginContainer" parent="." unique_id=901826950]
+layout_mode = 0
+offset_top = 448.0
+offset_right = 1152.0
+offset_bottom = 640.0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="HandLayout" type="VBoxContainer" parent="playerCards"]
 layout_mode = 2
-theme_override_constants/separation = 12
 
-[node name="Heading" type="Label" parent="MarginContainer/Layout" unique_id=622908583]
+[node name="HandHeading" type="Label" parent="playerCards/HandLayout"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 28
-text = "Table"
+text = "Your hand - click cards to select"
 
-[node name="Status" type="Label" parent="MarginContainer/Layout" unique_id=143093193]
-layout_mode = 2
-text = "Loading player data..."
-
-[node name="PlayersScroll" type="ScrollContainer" parent="MarginContainer/Layout" unique_id=141272172]
+[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout" unique_id=1308233125]
 layout_mode = 2
 size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 0
 
-[node name="Players" type="VBoxContainer" parent="MarginContainer/Layout/PlayersScroll" unique_id=31304293]
+[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer" unique_id=1249417654]
 layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/separation = 8
+
+[node name="opponentCards" type="MarginContainer" parent="." unique_id=520142148]
+layout_mode = 0
+offset_right = 1152.0
+offset_bottom = 192.0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="HandLayout" type="VBoxContainer" parent="opponentCards"]
+layout_mode = 2
+
+[node name="HandHeading" type="Label" parent="opponentCards/HandLayout"]
+layout_mode = 2
+text = "Opponent (face down)"
+
+[node name="ScrollContainer2" type="ScrollContainer" parent="opponentCards/HandLayout" unique_id=1353166833]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 1
+vertical_scroll_mode = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer2" unique_id=186610500]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="debug_button" type="Button" parent="." unique_id=1050406640]
+visible = false
+layout_mode = 0
+offset_left = 1056.0
+offset_top = 16.0
+offset_right = 1136.0
+offset_bottom = 64.0
+text = "roll"
+
+[connection signal="pressed" from="debug_button" to="." method="_on_button_pressed"]
