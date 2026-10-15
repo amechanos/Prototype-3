@@ -8,6 +8,7 @@ extends Control
 
 var targetNum: int
 var player_card_buttons: Array[Button] = []
+var selected_player_cards: Array[Button] = []
 
 
 func _ready() -> void:
@@ -46,6 +47,7 @@ func _on_button_pressed() -> void:
 
 func _render_player_cards() -> void:
 	player_card_buttons.clear()
+	selected_player_cards.clear()
 	var local_player: Dictionary = {}
 	var opponent_players: Array[Dictionary] = []
 	var local_peer_id := multiplayer.get_unique_id()
@@ -65,7 +67,7 @@ func _render_player_cards() -> void:
 			_add_player_card(str(card_data.get("name", "Unknown card")))
 		if player_card_buttons.is_empty():
 			_add_empty_card_message(player_cards_container, "No cards in hand.")
-		_update_player_heading()
+		_update_player_selection_ui()
 
 	var hidden_card_count := 0
 	var opponent_names: Array[String] = []
@@ -91,6 +93,7 @@ func _render_player_cards() -> void:
 func _add_player_card(card_name: String) -> void:
 	var card_button := Button.new()
 	card_button.text = card_name
+	card_button.set_meta("card_name", card_name)
 	card_button.tooltip_text = "Click to select this card to put out."
 	card_button.custom_minimum_size = Vector2(100, 136)
 	card_button.toggle_mode = true
@@ -115,13 +118,27 @@ func _add_empty_card_message(container: HBoxContainer, message: String) -> void:
 	container.add_child(empty_message)
 
 
-func _on_player_card_pressed(_card_button: Button) -> void:
-	_update_player_heading()
+func _on_player_card_pressed(card_button: Button) -> void:
+	if card_button.button_pressed:
+		if not selected_player_cards.has(card_button):
+			selected_player_cards.append(card_button)
+	else:
+		selected_player_cards.erase(card_button)
+	_update_player_selection_ui()
 
 
-func _update_player_heading() -> void:
+func _update_player_selection_ui() -> void:
 	var selected_count := 0
 	for card_button in player_card_buttons:
-		if card_button.button_pressed:
-			selected_count += 1
+		if not card_button.button_pressed:
+			card_button.text = str(card_button.get_meta("card_name"))
+			continue
+
+		var selection_order := selected_player_cards.find(card_button) + 1
+		card_button.text = "%d. %s" % [
+			selection_order,
+			card_button.get_meta("card_name"),
+		]
+		selected_count += 1
+
 	player_heading.text = "Your hand - click cards to select (%d selected)" % selected_count

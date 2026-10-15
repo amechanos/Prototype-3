@@ -42,17 +42,16 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="playerCards"]
+[node name="HandLayout" type="VBoxContainer" parent="playerCards" unique_id=160124898]
 layout_mode = 2
 
-[node name="HandHeading" type="Label" parent="playerCards/HandLayout"]
+[node name="HandHeading" type="Label" parent="playerCards/HandLayout" unique_id=1913122199]
 layout_mode = 2
 text = "Your hand - click cards to select"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout" unique_id=1308233125]
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 1
 vertical_scroll_mode = 0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer" unique_id=1249417654]
@@ -68,17 +67,16 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="opponentCards"]
+[node name="HandLayout" type="VBoxContainer" parent="opponentCards" unique_id=1191884747]
 layout_mode = 2
 
-[node name="HandHeading" type="Label" parent="opponentCards/HandLayout"]
+[node name="HandHeading" type="Label" parent="opponentCards/HandLayout" unique_id=1552270700]
 layout_mode = 2
 text = "Opponent (face down)"
 
 [node name="ScrollContainer2" type="ScrollContainer" parent="opponentCards/HandLayout" unique_id=1353166833]
 layout_mode = 2
 size_flags_vertical = 3
-horizontal_scroll_mode = 1
 vertical_scroll_mode = 0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer2" unique_id=186610500]
