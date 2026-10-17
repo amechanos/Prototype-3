@@ -3,9 +3,9 @@ extends RefCounted
 const TARGET_WEIGHTS := {
 	12: 0.025,
 	15: 0.125,
-	18: 0.200,
-	21: 0.300,
-	24: 0.200,
+	18: 0.225,
+	21: 0.250,
+	24: 0.225,
 	27: 0.125,
 	30: 0.025,
 }
@@ -17,7 +17,6 @@ const ROUND_LIMIT_SECONDS := 90.0
 const OPERATORS: Array[String] = ["minus", "multiplication", "division"]
 const OPERATOR_SYMBOLS := {"minus": "-", "multiplication": "x", "division": "/"}
 
-
 static func roll_target() -> int:
 	var roll := randf()
 	var cumulative := 0.0
@@ -27,10 +26,8 @@ static func roll_target() -> int:
 			return int(target)
 	return 21
 
-
 static func is_operator(card_name: String) -> bool:
 	return OPERATORS.has(card_name)
-
 
 static func discard_priority(card_name: String) -> int:
 	if card_name in ["jack", "queen", "king", "joker"]:
@@ -38,7 +35,6 @@ static func discard_priority(card_name: String) -> int:
 	if is_operator(card_name):
 		return 1
 	return 2
-
 
 static func operand_value(card: Dictionary) -> int:
 	var card_name := str(card.get("name", ""))
@@ -50,7 +46,6 @@ static func operand_value(card: Dictionary) -> int:
 		"queen", "joker":
 			return 1
 	return int(card.get("value", 1))
-
 
 static func card_label(card: Dictionary) -> String:
 	var card_name := str(card.get("name", "?"))
@@ -66,7 +61,6 @@ static func card_label(card: Dictionary) -> String:
 	if is_operator(card_name):
 		return str(OPERATOR_SYMBOLS[card_name])
 	return str(operand_value(card))
-
 
 # Cards read left to right. Two operands in a row are added together, and
 # multiply/divide bind tighter than add/minus (BODMAS without brackets).
@@ -128,12 +122,10 @@ static func evaluate(cards: Array) -> Dictionary:
 	result["text"] = " ".join(parts)
 	return result
 
-
 static func format_number(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):
 		return str(int(roundf(value)))
 	return "%.2f" % value
-
 
 static func adjusted_target(base_target: int, cards_a: Array, cards_b: Array) -> int:
 	var delta := 0
@@ -143,7 +135,6 @@ static func adjusted_target(base_target: int, cards_a: Array, cards_b: Array) ->
 			delta += JACK_DELTA if int(card.get("param", JACK_DELTA)) >= 0 else -JACK_DELTA
 	return maxi(1, base_target + delta)
 
-
 static func _count_named(cards: Array, card_name: String) -> int:
 	var count := 0
 	for card_variant in cards:
@@ -151,7 +142,6 @@ static func _count_named(cards: Array, card_name: String) -> int:
 		if str(card.get("name", "")) == card_name:
 			count += 1
 	return count
-
 
 # Queens and Jokers are always discarded after a round. The winner discards the
 # rest of the hand they played; each opposing Queen spares 50% of that (rounded
@@ -175,7 +165,6 @@ static func _discard_uids(cards: Array, is_winner: bool, opponent_queens: int) -
 	for index in range(spared, discardable.size()):
 		discards.append(int(discardable[index]["uid"]))
 	return discards
-
 
 # Returns winner as 0 (player A), 1 (player B) or -1 (draw).
 static func resolve(base_target: int, cards_a: Array, cards_b: Array) -> Dictionary:
