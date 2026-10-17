@@ -3,6 +3,10 @@ extends Control
 const Rules = preload("res://rules.gd")
 const RESULT_PAUSE := 4.0
 const DEADLINE_GRACE := 1.5
+const EQUATION_WIDTH := 490.0
+const EQUATION_HEIGHT := 150.0
+const EQUATION_GAP := 6.0
+
 
 @onready var target_num_label: Label = $TargetNumber
 @onready var player_cards_container: HBoxContainer = $playerCards/HandLayout/ScrollContainer/HBoxContainer
@@ -41,6 +45,7 @@ var submit_button: Button
 var status_label: Label
 var opponent_played_label: Label
 var back_button: Button
+var equation_card_size := Vector2(56, 64)
 
 
 func _ready() -> void:
@@ -359,7 +364,7 @@ func _build_ui() -> void:
 	equation_flow = HFlowContainer.new()
 	equation_flow.add_theme_constant_override("h_separation", 6)
 	equation_flow.add_theme_constant_override("v_separation", 6)
-	_place(equation_flow, Vector2(12, 224), Vector2(560, 150))
+	_place(equation_flow, Vector2(12, 224), Vector2(490, 150))
 
 	equation_label = Label.new()
 	equation_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -474,22 +479,30 @@ func _played_cards() -> Array:
 func _refresh_equation() -> void:
 	for child in equation_flow.get_children():
 		child.queue_free()
-	var selected_count := 0
+
 	for card_button in player_card_buttons:
 		var card: Dictionary = card_button.get_meta("card")
-		var order := selected_cards.find(card_button) + 1
-		card_button.text = _card_title(card) if order == 0 else "%d.\n%s" % [order, _card_title(card)]
-		if order > 0:
-			selected_count += 1
-			equation_flow.add_child(_make_equation_entry(card, order))
-	player_heading.text = "Your hand - click cards in the order to play them (%d selected)" % selected_count
+		card_button.visible = not selected_cards.has(card_button)
+		card_button.text = _card_title(card)
+
+	equation_card_size = _get_equation_card_size(selected_cards.size())
+	for index in range(selected_cards.size()):
+		var selected_button := selected_cards[index]
+		var selected_card: Dictionary = selected_button.get_meta("card")
+		equation_flow.add_child(_make_equation_entry(selected_card, index + 1, selected_button))
+
+	player_heading.text = "Your hand - click cards in the order to play them (%d selected)" % selected_cards.size()
 	_update_evaluation()
 
 
-func _make_equation_entry(card: Dictionary, order: int) -> Control:
+func _make_equation_entry(card: Dictionary, order: int, hand_button: Button) -> Control:
 	var entry := VBoxContainer.new()
-	var title := Label.new()
-	title.text = "%d. %s" % [order, _card_title(card).replace("\n", " ")]
+	var title := Button.new()
+	title.text = _card_title(card)
+	title.custom_minimum_size = equation_card_size
+	title.add_theme_font_size_override("font_size", maxi(9, int(16 * equation_card_size.x / 56.0)))
+	title.disabled = has_submitted or game_finished
+	title.pressed.connect(_on_equation_card_pressed.bind(hand_button))
 	entry.add_child(title)
 	var card_name := str(card["name"])
 	var uid: int = card["uid"]
@@ -511,6 +524,8 @@ func _make_equation_entry(card: Dictionary, order: int) -> Control:
 		entry.add_child(choice)
 	return entry
 
+func _on_equation_card_pressed(hand_button: Button) -> void:
+	hand_button.button_pressed = false
 
 func _on_king_changed(value: float, uid: int) -> void:
 	card_params[uid] = int(value)
@@ -582,9 +597,23 @@ func _lock_hand() -> void:
 				part.editable = false
 			elif part is OptionButton:
 				part.disabled = true
+			elif part is Button:
+				part.disabled = true
 	submit_button.disabled = true
 
 
 func _on_back_pressed() -> void:
 	multiplayer.multiplayer_peer = null
 	get_tree().change_scene_to_file("res://network_testing.tscn")
+	
+func _get_equation_card_size(count: int) -> Vector2:
+	var width := 56.0
+	while width > 28.0:
+		var height := width * 1.15
+		var columns := maxi(1, int((EQUATION_WIDTH + EQUATION_GAP) / (width + EQUATION_GAP)))
+		var rows := ceili(float(count) / columns)
+		var needed := rows * height + (rows - 1) * EQUATION_GAP
+		if needed <= EQUATION_HEIGHT:
+			break
+		width -= 4.0
+	return Vector2(width, width * 1.15)

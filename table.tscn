@@ -1,8 +1,8 @@
-[gd_scene format=3 uid="uid://4fhnhk28s748"]
+[gd_scene load_steps=2 format=3 uid="uid://4fhnhk28s748"]
 
 [ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://table.gd" id="1_jd0nb"]
 
-[node name="table" type="Control" unique_id=415757337]
+[node name="table" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_jd0nb")
 
-[node name="TargetNumber" type="Label" parent="." unique_id=531472384]
+[node name="TargetNumber" type="Label" parent="."]
 layout_mode = 0
 offset_left = 512.0
 offset_top = 256.0
@@ -22,7 +22,7 @@ text = "21"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TargetText" type="Label" parent="." unique_id=472617942]
+[node name="TargetText" type="Label" parent="."]
 layout_mode = 0
 offset_left = 512.0
 offset_top = 192.0
@@ -32,7 +32,7 @@ text = "Target Number"
 horizontal_alignment = 1
 vertical_alignment = 2
 
-[node name="playerCards" type="MarginContainer" parent="." unique_id=901826950]
+[node name="playerCards" type="MarginContainer" parent="."]
 layout_mode = 0
 offset_top = 448.0
 offset_right = 1152.0
@@ -42,23 +42,23 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="playerCards" unique_id=160124898]
+[node name="HandLayout" type="VBoxContainer" parent="playerCards"]
 layout_mode = 2
 
-[node name="HandHeading" type="Label" parent="playerCards/HandLayout" unique_id=1913122199]
+[node name="HandHeading" type="Label" parent="playerCards/HandLayout"]
 layout_mode = 2
 text = "Your hand - click cards to select"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout" unique_id=1308233125]
+[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout"]
 layout_mode = 2
 size_flags_vertical = 3
 vertical_scroll_mode = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer" unique_id=1249417654]
+[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="opponentCards" type="MarginContainer" parent="." unique_id=520142148]
+[node name="opponentCards" type="MarginContainer" parent="."]
 layout_mode = 0
 offset_right = 1152.0
 offset_bottom = 192.0
@@ -67,18 +67,18 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="opponentCards" unique_id=1191884747]
+[node name="HandLayout" type="VBoxContainer" parent="opponentCards"]
 layout_mode = 2
 
-[node name="HandHeading" type="Label" parent="opponentCards/HandLayout" unique_id=1552270700]
+[node name="HandHeading" type="Label" parent="opponentCards/HandLayout"]
 layout_mode = 2
 text = "Opponent (face down)"
 
-[node name="ScrollContainer2" type="ScrollContainer" parent="opponentCards/HandLayout" unique_id=1353166833]
+[node name="ScrollContainer2" type="ScrollContainer" parent="opponentCards/HandLayout"]
 layout_mode = 2
 size_flags_vertical = 3
 vertical_scroll_mode = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer2" unique_id=186610500]
+[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer2"]
 layout_mode = 2
 theme_override_constants/separation = 8

@@ -1,8 +1,8 @@
-[gd_scene format=3 uid="uid://bt4h54dm4elj8"]
+[gd_scene load_steps=2 format=3 uid="uid://bt4h54dm4elj8"]
 
 [ext_resource type="Script" uid="uid://b6g3biyyxyk3i" path="res://board.gd" id="1_p0ybc"]
 
-[node name="board" type="Control" unique_id=1221747262]
+[node name="board" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +11,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_p0ybc")
 
-[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1317419235]
+[node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -27,68 +27,68 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Layout" type="VBoxContainer" parent="MarginContainer" unique_id=2142764043]
+[node name="Layout" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Counts" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=155099555]
+[node name="Counts" type="HBoxContainer" parent="MarginContainer/Layout"]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="YourDeckCount" type="Label" parent="MarginContainer/Layout/Counts" unique_id=775782007]
+[node name="YourDeckCount" type="Label" parent="MarginContainer/Layout/Counts"]
 layout_mode = 2
 text = "Cards in your deck: 0"
 
-[node name="BoardCount" type="Label" parent="MarginContainer/Layout/Counts" unique_id=755348155]
+[node name="BoardCount" type="Label" parent="MarginContainer/Layout/Counts"]
 layout_mode = 2
 text = "Cards on board: 50"
 
-[node name="TurnLabel" type="Label" parent="MarginContainer/Layout" unique_id=1295109223]
+[node name="TurnLabel" type="Label" parent="MarginContainer/Layout"]
 layout_mode = 2
 text = "Your turn"
 
-[node name="DrawOptions" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=853414024]
+[node name="DrawOptions" type="HBoxContainer" parent="MarginContainer/Layout"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="DrawThreeButton" type="Button" parent="MarginContainer/Layout/DrawOptions" unique_id=609795086]
+[node name="DrawThreeButton" type="Button" parent="MarginContainer/Layout/DrawOptions"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 text = "Draw 3 face-down cards"
 
-[node name="Status" type="Label" parent="MarginContainer/Layout" unique_id=1817469705]
+[node name="Status" type="Label" parent="MarginContainer/Layout"]
 layout_mode = 2
 text = "Choose cards to add them to your deck."
 
-[node name="BoardScroll" type="ScrollContainer" parent="MarginContainer/Layout" unique_id=1626572399]
+[node name="BoardScroll" type="ScrollContainer" parent="MarginContainer/Layout"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="BoardGrid" type="GridContainer" parent="MarginContainer/Layout/BoardScroll" unique_id=2040848130]
+[node name="BoardGrid" type="GridContainer" parent="MarginContainer/Layout/BoardScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="YourDeckHeading" type="Label" parent="MarginContainer/Layout" unique_id=222205967]
+[node name="YourDeckHeading" type="Label" parent="MarginContainer/Layout"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Your deck"
 
-[node name="YourDeckScroll" type="ScrollContainer" parent="MarginContainer/Layout" unique_id=1188261088]
+[node name="YourDeckScroll" type="ScrollContainer" parent="MarginContainer/Layout"]
 custom_minimum_size = Vector2(0, 110)
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="YourDeckFlow" type="HFlowContainer" parent="MarginContainer/Layout/YourDeckScroll" unique_id=913185651]
+[node name="YourDeckFlow" type="HFlowContainer" parent="MarginContainer/Layout/YourDeckScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 
-[node name="StartGame" type="Button" parent="." unique_id=1272692863]
+[node name="StartGame" type="Button" parent="."]
 layout_mode = 0
 offset_left = 896.0
 offset_top = 64.0
