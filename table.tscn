@@ -82,14 +82,3 @@ vertical_scroll_mode = 0
 [node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer2" unique_id=186610500]
 layout_mode = 2
 theme_override_constants/separation = 8
-
-[node name="debug_button" type="Button" parent="." unique_id=1050406640]
-visible = false
-layout_mode = 0
-offset_left = 1056.0
-offset_top = 16.0
-offset_right = 1136.0
-offset_bottom = 64.0
-text = "roll"
-
-[connection signal="pressed" from="debug_button" to="." method="_on_button_pressed"]
