@@ -1,144 +1,485 @@
 extends Control
 
-@onready var target_num_label: Label = $TargetNumber
+const Rules = preload("res://rules.gd")
+const RESULT_PAUSE := 10.0
+const DEADLINE_GRACE := 5.0
+const EQUATION_WIDTH := 490.0
+const EQUATION_HEIGHT := 150.0
+const EQUATION_GAP := 6.0
+
+@onready var equation_flow: HFlowContainer = $PlayerInterface/EQDisplay
+@onready var submit_button: Button = $PlayerInterface/Submit
+
+@onready var timer_label: Label = $UI/Timer
+@onready var round_counter: Label = $UI/Round
+@onready var target_num_label: Label = $UI/TargetNumber
+@onready var information: Label = $UI/Info
+
 @onready var player_cards_container: HBoxContainer = $playerCards/HandLayout/ScrollContainer/HBoxContainer
 @onready var opponent_cards_container: HBoxContainer = $opponentCards/HandLayout/ScrollContainer2/HBoxContainer
 @onready var player_heading: Label = $playerCards/HandLayout/HandHeading
 @onready var opponent_heading: Label = $opponentCards/HandLayout/HandHeading
 
-var targetNum: int
-var player_card_buttons: Array[Button] = []
-var selected_player_cards: Array[Button] = []
+var my_id := 1
+var names: Dictionary = {}
+var player_ids: Array[int] = []
 
+# Host-only state.
+var hands: Dictionary = {}
+var ready_peers: Array[int] = []
+var submissions: Dictionary = {}
+var round_active := false
+var round_number := 0
+var base_target := 21
+var game_finished := false
+var next_uid := 0
+
+# Local state.
+var my_hand: Array = []
+var opponent_count := 0
+var opponent_played_cards: Array = []
+var target_number := 21
+var player_card_buttons: Array[Button] = []
+var selected_cards: Array[Button] = []
+var card_params: Dictionary = {}
+var has_submitted := false
+var time_left := -1.0
+var equation_card_size := Vector2(56, 64)
 
 func _ready() -> void:
-	_render_player_cards()
-
-
-func roll_number() -> int:
-	var roll := randf()
-	var cumulative := 0.0
-	var weights := {
-		12: 0.025,
-		15: 0.125,
-		18: 0.200,
-		21: 0.300,
-		24: 0.200,
-		27: 0.125,
-		30: 0.025,
-	}
-
-	for target in weights:
-		cumulative += weights[target]
-		if roll <= cumulative:
-			return target
-
-	return 21
-
-
-func get_target_number() -> void:
-	targetNum = roll_number()
-	target_num_label.text = str(targetNum)
-
-
-func _on_button_pressed() -> void:
-	get_target_number()
-
-
-func _render_player_cards() -> void:
-	player_card_buttons.clear()
-	selected_player_cards.clear()
-	var local_player: Dictionary = {}
-	var opponent_players: Array[Dictionary] = []
-	var local_peer_id := multiplayer.get_unique_id()
-
+	information.text = " "
+	my_id = multiplayer.get_unique_id()
 	for player_data in Global.game_players:
-		if int(player_data.get("peer_id", -1)) == local_peer_id and local_player.is_empty():
-			local_player = player_data
-		else:
-			opponent_players.append(player_data)
-
-	if local_player.is_empty():
-		player_heading.text = "Your hand (no cards)"
+		var peer_id := int(player_data.get("peer_id", -1))
+		player_ids.append(peer_id)
+		names[peer_id] = str(player_data.get("name", "Player %d" % peer_id))
+	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
+	multiplayer.server_disconnected.connect(_on_server_disconnected)
+	if multiplayer.is_server():
+		_host_mark_ready()
 	else:
-		var player_cards: Array = local_player.get("cards", [])
-		for card_index in range(player_cards.size()):
-			var card_data: Dictionary = player_cards[card_index]
-			_add_player_card(str(card_data.get("name", "Unknown card")))
-		if player_card_buttons.is_empty():
-			_add_empty_card_message(player_cards_container, "No cards in hand.")
-		_update_player_selection_ui()
+		_send(1, &"_host_mark_ready", [])
 
-	var hidden_card_count := 0
-	var opponent_names: Array[String] = []
-	for opponent_data in opponent_players:
-		var opponent_cards: Array = opponent_data.get("cards", [])
-		hidden_card_count += opponent_cards.size()
-		opponent_names.append(str(opponent_data.get("name", "Opponent")))
-		for _card_index in range(opponent_cards.size()):
-			_add_face_down_card()
+func _process(delta: float) -> void:
+	if time_left < 0.0:
+		return
+	time_left = maxf(0.0, time_left - delta)
+	timer_label.text = "Time left: %.1f" % time_left
+	if time_left == 0.0:
+		time_left = -1.0
+		if not has_submitted:
+			_submit_current_hand(true)
 
-	if opponent_players.is_empty():
-		opponent_heading.text = "Opponent (no cards)"
+func _sender() -> int:
+	var sender := multiplayer.get_remote_sender_id()
+	return sender if sender != 0 else multiplayer.get_unique_id()
+
+func _send(peer_id: int, method: StringName, args: Array) -> void:
+	if peer_id == multiplayer.get_unique_id():
+		callv(method, args)
 	else:
-		var opponent_label := ", ".join(opponent_names)
-		opponent_heading.text = "%s (%d cards, face down)" % [
-			opponent_label,
-			hidden_card_count,
-		]
-		if hidden_card_count == 0:
-			_add_empty_card_message(opponent_cards_container, "No cards.")
+		callv("rpc_id", [peer_id, method] + args)
 
 
-func _add_player_card(card_name: String) -> void:
-	var card_button := Button.new()
-	card_button.text = card_name
-	card_button.set_meta("card_name", card_name)
-	card_button.tooltip_text = "Click to select this card to put out."
-	card_button.custom_minimum_size = Vector2(100, 136)
-	card_button.toggle_mode = true
-	card_button.pressed.connect(_on_player_card_pressed.bind(card_button))
-	player_cards_container.add_child(card_button)
-	player_card_buttons.append(card_button)
+func _broadcast(method: StringName, args: Array) -> void:
+	for peer_id in player_ids:
+		_send(peer_id, method, args)
 
+# ---------------------------------------------------------------- host logic
 
-func _add_face_down_card() -> void:
-	var card_back := Button.new()
-	card_back.text = "?"
-	card_back.tooltip_text = "Opponent card"
-	card_back.custom_minimum_size = Vector2(100, 136)
-	card_back.disabled = true
-	opponent_cards_container.add_child(card_back)
+@rpc("any_peer", "call_remote", "reliable")
+func _host_mark_ready() -> void:
+	if not multiplayer.is_server():
+		return
+	var sender := _sender()
+	if not player_ids.has(sender) or ready_peers.has(sender):
+		return
+	ready_peers.append(sender)
+	if ready_peers.size() == player_ids.size():
+		_host_begin()
 
+func _host_begin() -> void:
+	for player_data in Global.game_players:
+		var hand: Array = []
+		for card_variant in player_data.get("cards", []):
+			var card: Dictionary = card_variant
+			hand.append({
+				"uid": next_uid,
+				"name": str(card.get("name", "")).to_lower(),
+				"value": int(card.get("value", 1)),
+			})
+			next_uid += 1
+		hands[int(player_data.get("peer_id", -1))] = hand
+	_host_start_round()
 
-func _add_empty_card_message(container: HBoxContainer, message: String) -> void:
-	var empty_message := Label.new()
-	empty_message.text = message
-	empty_message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	container.add_child(empty_message)
+func _host_start_round() -> void:
+	if game_finished:
+		return
+	round_number += 1
+	base_target = Rules.roll_target()
+	submissions.clear()
+	round_active = true
+	var counts := {}
+	for peer_id in player_ids:
+		counts[peer_id] = (hands[peer_id] as Array).size()
+	for peer_id in player_ids:
+		_send(peer_id, &"_receive_round", [hands[peer_id], counts, base_target, round_number])
+	_host_deadline(round_number, Rules.ROUND_LIMIT_SECONDS)
 
+@rpc("any_peer", "call_remote", "reliable")
+func _host_receive_submit(picks: Array) -> void:
+	if not multiplayer.is_server() or not round_active:
+		return
+	var sender := _sender()
+	if not player_ids.has(sender) or submissions.has(sender):
+		return
 
-func _on_player_card_pressed(card_button: Button) -> void:
-	if card_button.button_pressed:
-		if not selected_player_cards.has(card_button):
-			selected_player_cards.append(card_button)
-	else:
-		selected_player_cards.erase(card_button)
-	_update_player_selection_ui()
+	var played := _build_played_cards(sender, picks)
+	submissions[sender] = played
+	_broadcast(&"_show_submission", [sender, played])
+	if submissions.size() == player_ids.size():
+		_host_resolve()
+	elif submissions.size() == 1:
+		_broadcast(&"_start_countdown", [Rules.ROUND_SECONDS])
+		_host_deadline(round_number, Rules.ROUND_SECONDS)
 
-
-func _update_player_selection_ui() -> void:
-	var selected_count := 0
-	for card_button in player_card_buttons:
-		if not card_button.button_pressed:
-			card_button.text = str(card_button.get_meta("card_name"))
+func _build_played_cards(peer_id: int, picks: Array) -> Array:
+	var played: Array = []
+	var used_uids: Array[int] = []
+	for pick_variant in picks:
+		var pick: Dictionary = pick_variant
+		var uid := int(pick.get("uid", -1))
+		if used_uids.has(uid):
 			continue
+		for card_variant in hands[peer_id]:
+			var card: Dictionary = card_variant
+			if int(card["uid"]) != uid:
+				continue
+			var played_card := card.duplicate()
+			var param := int(pick.get("param", 0))
+			if card["name"] == "king":
+				played_card["param"] = clampi(param, Rules.KING_MIN, Rules.KING_MAX)
+			elif card["name"] == "jack":
+				played_card["param"] = Rules.JACK_DELTA if param >= 0 else -Rules.JACK_DELTA
+			played.append(played_card)
+			used_uids.append(uid)
+			break
+	if not bool(Rules.evaluate(played)["valid"]):
+		return []
+	return played
 
-		var selection_order := selected_player_cards.find(card_button) + 1
-		card_button.text = "%d. %s" % [
-			selection_order,
-			card_button.get_meta("card_name"),
-		]
-		selected_count += 1
+func _host_deadline(for_round: int, seconds: float) -> void:
+	await get_tree().create_timer(seconds + DEADLINE_GRACE).timeout
+	if not round_active or round_number != for_round:
+		return
+	for peer_id in player_ids:
+		if not submissions.has(peer_id):
+			submissions[peer_id] = []
+			_broadcast(&"_show_submission", [peer_id, []])
+	_host_resolve()
 
-	player_heading.text = "Your hand - click cards to select (%d selected)" % selected_count
+func _host_resolve() -> void:
+	round_active = false
+	var peer_a: int = player_ids[0]
+	var peer_b: int = player_ids[1] if player_ids.size() > 1 else -1
+	var cards_a: Array = submissions.get(peer_a, [])
+	var cards_b: Array = submissions.get(peer_b, [])
+	var result := Rules.resolve(base_target, cards_a, cards_b)
+	result["peers"] = [peer_a, peer_b]
+	result["cards"] = [cards_a, cards_b]
+
+	var finished_peer := -1
+	for index in range(player_ids.size()):
+		var peer_id: int = player_ids[index]
+		var discard_uids: Array = result["discard"][index]
+		hands[peer_id] = (hands[peer_id] as Array).filter(
+			func(card: Dictionary) -> bool: return not discard_uids.has(int(card["uid"]))
+		)
+		if (hands[peer_id] as Array).is_empty() and finished_peer == -1:
+			finished_peer = peer_id
+
+	_broadcast(&"_show_result", [result])
+	await get_tree().create_timer(RESULT_PAUSE).timeout
+	if game_finished:
+		return
+	if finished_peer != -1:
+		game_finished = true
+		_broadcast(&"_game_over", [finished_peer, ""])
+	else:
+		_host_start_round()
+
+func _on_peer_disconnected(peer_id: int) -> void:
+	if not multiplayer.is_server() or game_finished or not player_ids.has(peer_id):
+		return
+	player_ids.erase(peer_id)
+	game_finished = true
+	round_active = false
+	_broadcast(&"_game_over", [my_id, "Your opponent disconnected."])
+
+func _on_server_disconnected() -> void:
+	game_finished = true
+	time_left = -1.0
+	print("Host disconnected.")
+	_lock_hand()
+
+# ------------------------------------------------------------ client: rounds
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_round(hand: Array, counts: Dictionary, target: int, round_no: int) -> void:
+	my_hand = hand.duplicate(true)
+	target_number = target
+	target_num_label.text = str(target)
+	has_submitted = false
+	time_left = Rules.ROUND_LIMIT_SECONDS
+	timer_label.text = ""
+	opponent_heading.text = ""
+	opponent_played_cards = []
+	opponent_count = 0
+	for peer_id in counts:
+		if int(peer_id) != my_id:
+			opponent_count += int(counts[peer_id])
+	selected_cards.clear()
+	_render_hand()
+	_render_opponent()
+	_refresh_equation()
+	round_counter.text = "Round %d" % round_no
+
+@rpc("authority", "call_remote", "reliable")
+func _start_countdown(seconds: float) -> void:
+	if has_submitted:
+		return
+	time_left = seconds if time_left < 0.0 else minf(seconds, time_left)
+
+@rpc("authority", "call_remote", "reliable")
+func _show_result(result: Dictionary) -> void:
+	time_left = -1.0
+	timer_label.text = ""
+	var peers: Array = result["peers"]
+	var mine := peers.find(my_id)
+	if mine == -1:
+		mine = 0
+	var other := 1 - mine
+	var score: Array = result["score"]
+	var bust: Array = result["bust"]
+	target_num_label.text = str(int(result["target"]))
+
+	var lines: Array[String] = []
+	if int(result["target"]) != target_number:
+		lines.append("Jacks moved the target to %d." % int(result["target"]))
+	if bool(result["swapped"]):
+		lines.append("A Joker swapped the hands!")
+	lines.append("You: %s%s" % [
+		Rules.format_number(float(score[mine])),
+		" (bust)" if bool(bust[mine]) else "",
+	])
+	if int(peers[other]) != -1:
+		lines.append("%s: %s%s" % [
+			names.get(int(peers[other]), "Opponent"),
+			Rules.format_number(float(score[other])),
+			" (bust)" if bool(bust[other]) else "",
+		])
+	var winner := int(result["winner"])
+	var discard_mine: Array = result["discard"][mine]
+	var discard_other: Array = result["discard"][other]
+	if winner == -1:
+		lines.append("Draw - nobody discards the cards they played.")
+	elif winner == mine:
+		lines.append("You win the round!")
+	else:
+		lines.append("You lose the round and keep your cards.")
+	lines.append("You discard %d card(s)." % discard_mine.size())
+	information.text = "\n".join(lines)
+
+	my_hand = my_hand.filter(
+		func(card: Dictionary) -> bool: return not discard_mine.has(int(card["uid"]))
+	)
+	opponent_count = maxi(0, opponent_count - discard_other.size())
+	has_submitted = true
+	selected_cards.clear()
+	_render_hand()
+	_render_opponent()
+	_refresh_equation()
+	#information.text = " "
+
+@rpc("authority", "call_remote", "reliable")
+func _game_over(winner_peer: int, note: String) -> void:
+	game_finished = true
+	time_left = -1.0
+	timer_label.text = ""
+	has_submitted = true
+	selected_cards.clear()
+	_render_hand()
+	_refresh_equation()
+	var message := note
+	if winner_peer == my_id:
+		message += " You win - you disposed of all your cards!" if note == "" else " You win!"
+	else:
+		message = "%s disposed of all their cards. You lose." % names.get(winner_peer, "Your opponent")
+	round_counter.text = message.strip_edges()
+	submit_button.disabled = true
+
+# ----------------------------------------------------------------- client: UI
+func _render_hand() -> void:
+	for child in player_cards_container.get_children():
+		child.queue_free()
+	player_card_buttons.clear()
+	for card_variant in my_hand:
+		var card: Dictionary = card_variant
+		var card_button := Button.new()
+		card_button.set_meta("card", card)
+		card_button.toggle_mode = true
+		card_button.custom_minimum_size = Vector2(100, 136)
+		card_button.disabled = has_submitted or game_finished
+		card_button.toggled.connect(_on_card_toggled.bind(card_button))
+		card_button.text = _card_title(card)
+		player_cards_container.add_child(card_button)
+		player_card_buttons.append(card_button)
+
+func _render_opponent() -> void:
+	for child in opponent_cards_container.get_children():
+		child.queue_free()
+	var opponent_names: Array[String] = []
+	for peer_id in player_ids:
+		if peer_id != my_id:
+			opponent_names.append(str(names.get(peer_id, "Opponent")))
+	if opponent_names.is_empty():
+		opponent_heading.text = "No opponent (practice round)"
+		return
+	opponent_heading.text = "%s (%d cards, face down)" % [", ".join(opponent_names), opponent_count]
+	for _index in range(opponent_count):
+		var card_back := Button.new()
+		card_back.text = "?"
+		card_back.custom_minimum_size = Vector2(100, 136)
+		card_back.disabled = true
+		opponent_cards_container.add_child(card_back)
+
+func _card_title(card: Dictionary) -> String:
+	var card_name := str(card["name"])
+	if Rules.is_operator(card_name):
+		return "%s\n(%s)" % [card_name.capitalize(), Rules.OPERATOR_SYMBOLS[card_name]]
+	if card_name.is_valid_int():
+		return card_name
+	return card_name.capitalize()
+
+func _on_card_toggled(pressed: bool, card_button: Button) -> void:
+	if pressed:
+		if not selected_cards.has(card_button):
+			selected_cards.append(card_button)
+	else:
+		selected_cards.erase(card_button)
+	_refresh_equation()
+
+func _default_param(card_name: String) -> int:
+	return Rules.JACK_DELTA if card_name == "jack" else 5
+
+func _played_cards() -> Array:
+	var cards: Array = []
+	for card_button in selected_cards:
+		var card: Dictionary = (card_button.get_meta("card") as Dictionary).duplicate()
+		var card_name := str(card["name"])
+		if card_name == "king" or card_name == "jack":
+			card["param"] = int(card_params.get(card["uid"], _default_param(card_name)))
+		cards.append(card)
+	return cards
+
+func _refresh_equation() -> void:
+	for child in equation_flow.get_children():
+		child.queue_free()
+
+	for card_button in player_card_buttons:
+		var card: Dictionary = card_button.get_meta("card")
+		card_button.visible = not selected_cards.has(card_button)
+		card_button.text = _card_title(card)
+
+	equation_card_size = _get_equation_card_size(selected_cards.size())
+	for index in range(selected_cards.size()):
+		var selected_button := selected_cards[index]
+		var selected_card: Dictionary = selected_button.get_meta("card")
+		equation_flow.add_child(_make_equation_entry(selected_card, index + 1, selected_button))
+
+	player_heading.text = "Your hand. (%d selected)" % selected_cards.size()
+
+func _make_equation_entry(card: Dictionary, _order: int, hand_button: Button) -> Control:
+	var entry := VBoxContainer.new()
+	var title := Button.new()
+	title.text = _card_title(card)
+	title.custom_minimum_size = equation_card_size
+	title.add_theme_font_size_override("font_size", maxi(9, int(16 * equation_card_size.x / 56.0)))
+	title.disabled = has_submitted or game_finished
+	title.pressed.connect(_on_equation_card_pressed.bind(hand_button))
+	entry.add_child(title)
+	var card_name := str(card["name"])
+	var uid: int = card["uid"]
+	if card_name == "king":
+		var spin := SpinBox.new()
+		spin.min_value = Rules.KING_MIN
+		spin.max_value = Rules.KING_MAX
+		spin.value = int(card_params.get(uid, _default_param(card_name)))
+		spin.editable = not has_submitted
+		spin.value_changed.connect(_on_king_changed.bind(uid))
+		entry.add_child(spin)
+	elif card_name == "jack":
+		var choice := OptionButton.new()
+		choice.add_item("Target +3", 0)
+		choice.add_item("Target -3", 1)
+		choice.selected = 0 if int(card_params.get(uid, _default_param(card_name))) >= 0 else 1
+		choice.disabled = has_submitted
+		choice.item_selected.connect(_on_jack_changed.bind(uid))
+		entry.add_child(choice)
+	return entry
+
+func _on_equation_card_pressed(hand_button: Button) -> void:
+	hand_button.button_pressed = false
+
+func _on_king_changed(value: float, uid: int) -> void:
+	card_params[uid] = int(value)
+
+func _on_jack_changed(index: int, uid: int) -> void:
+	card_params[uid] = Rules.JACK_DELTA if index == 0 else -Rules.JACK_DELTA
+
+func _on_submit_pressed() -> void:
+	_submit_current_hand(false)
+
+func _submit_current_hand(auto_submit: bool) -> void:
+	if has_submitted or game_finished:
+		return
+	var cards := _played_cards()
+	if auto_submit:
+		while not cards.is_empty() and Rules.is_operator(str(cards.back()["name"])):
+			cards.pop_back()
+		cards = []
+
+	var picks: Array = []
+	for card in cards:
+		picks.append({"uid": card["uid"], "param": card.get("param", 0)})
+	has_submitted = true
+	time_left = -1.0
+	timer_label.text = ""
+	_lock_hand()
+	round_counter.text = "You submitted. Waiting for opponent."
+	_send(1, &"_host_receive_submit", [picks])
+
+func _lock_hand() -> void:
+	for card_button in player_card_buttons:
+		card_button.disabled = true
+	for child in equation_flow.get_children():
+		for part in child.get_children():
+			if part is SpinBox:
+				part.editable = false
+			elif part is OptionButton:
+				part.disabled = true
+			elif part is Button:
+				part.disabled = true
+	submit_button.disabled = true
+	
+func _get_equation_card_size(count: int) -> Vector2:
+	var width := 56.0
+	while width > 28.0:
+		var height := width * 1.15
+		var columns := maxi(1, int((EQUATION_WIDTH + EQUATION_GAP) / (width + EQUATION_GAP)))
+		var rows := ceili(float(count) / columns)
+		var needed := rows * height + (rows - 1) * EQUATION_GAP
+		if needed <= EQUATION_HEIGHT:
+			break
+		width -= 4.0
+	return Vector2(width, width * 1.15)

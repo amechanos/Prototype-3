@@ -25,6 +25,25 @@ prototype.
    player's collected cards and profile data through the `Global` autoload and
    open the table scene.
 
+8. On the table, each round shows a weighted-random target (12-30). Click
+   cards in the order you want them played; the equation reads left to right
+   with x and / before - (no brackets). Neighbouring numbers are added by
+   default, and each division rounds to the nearest whole number.
+   Each round also has a 90 second limit; when it runs out, whatever you have
+   selected is submitted automatically. Submit your hand: a 10 second timer
+   starts for the other player when the
+   first hand is submitted (the current selection is auto-sent at zero).
+9. Closest to the target without going over wins the round. Ties and double
+   busts go to the player who used the most cards. The winner discards the
+   cards played; the loser keeps them. First player with an empty hand wins.
+
+Special cards: King (choose 1-10), Queen (value 1; if the opponent wins, each
+Queen spares 50% of their discards, rounded down, so two Queens cancel the
+discard; Face/Joker cards are spared
+first), Jack (value 10; its player chooses to raise or lower the target by 3),
+Joker (value 1; swaps your hand result with your opponent's). Queens and
+Jokers are discarded as soon as they are played.
+
 The lobby uses ENet over UDP port `7000` and accepts one remote player. Both
 devices need to be able to communicate over the local network. The host's
 firewall may need to allow inbound UDP traffic on port `7000`.

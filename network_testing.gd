@@ -44,13 +44,8 @@ func _on_host_pressed() -> void:
 	multiplayer.multiplayer_peer = peer
 	_connection_active = true
 	_set_connected_controls(true)
-	var addresses := _get_lan_addresses()
-	_set_status("Hosting on port %d. Give the other player this address: %s" % [
-		PORT,
-		", ".join(addresses)
-	])
+	_set_status("Hosting on port %d. Give the other player the IP Address." % PORT)
 	_update_players()
-
 
 func _on_join_pressed() -> void:
 	var address := join_address.text.strip_edges()
@@ -69,11 +64,9 @@ func _on_join_pressed() -> void:
 	_set_connected_controls(true)
 	_set_status("Connecting to %s on port %d..." % [address, PORT])
 
-
 func _on_disconnect_pressed() -> void:
 	_reset_connection()
 	_set_status("Disconnected.")
-
 
 func _on_play_pressed() -> void:
 	if multiplayer.multiplayer_peer == null:
@@ -86,24 +79,20 @@ func _on_play_pressed() -> void:
 	else:
 		_set_status("Wait for the host to start the shared board.")
 
-
 func _open_card_board() -> void:
 	var error := get_tree().change_scene_to_file("res://board.tscn")
 	if error != OK:
 		push_error("Could not open the card board: %s" % error_string(error))
 
-
 @rpc("authority", "call_local", "reliable")
 func _start_card_board() -> void:
 	_open_card_board()
-
 
 func _on_peer_connected(peer_id: int) -> void:
 	_update_players()
 	_set_connected_controls(_connection_active)
 	if multiplayer.is_server():
-		_set_status("Player %d joined. The 1v1 room is ready." % peer_id)
-
+		_set_status("Player %d joined. The room is ready." % peer_id)
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	_update_players()
@@ -111,29 +100,24 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	if multiplayer.is_server():
 		_set_status("Player %d disconnected. Waiting for another player." % peer_id)
 
-
 func _on_connected_to_server() -> void:
 	_set_connected_controls(_connection_active)
 	_set_status("Connected to the host. Waiting for the game to start.")
 	_update_players()
 
-
 func _on_connection_failed() -> void:
 	_reset_connection()
 	_set_status("Connection failed. Check the address, port, and local network.", true)
 
-
 func _on_server_disconnected() -> void:
 	_reset_connection()
 	_set_status("The host disconnected.", true)
-
 
 func _reset_connection() -> void:
 	multiplayer.multiplayer_peer = null
 	_connection_active = false
 	_set_connected_controls(false)
 	_update_players()
-
 
 func _set_connected_controls(connected: bool) -> void:
 	host_button.disabled = connected
@@ -144,12 +128,10 @@ func _set_connected_controls(connected: bool) -> void:
 		not multiplayer.is_server() or multiplayer.get_peers().is_empty()
 	)
 
-
 func _set_status(message: String, is_error: bool = false) -> void:
 	status_label.text = message
 	var color := Color(1.0, 0.45, 0.4) if is_error else Color(0.82, 0.88, 0.96)
 	status_label.add_theme_color_override("font_color", color)
-
 
 func _update_players() -> void:
 	if not _connection_active:
@@ -165,16 +147,3 @@ func _update_players() -> void:
 		remote_ids.size() + 1,
 		"\n".join(player_names)
 	]
-
-
-func _get_lan_addresses() -> PackedStringArray:
-	var addresses := PackedStringArray()
-	for address in IP.get_local_addresses():
-		if address.contains(":") or address.begins_with("127.") or address == "0.0.0.0":
-			continue
-		if not addresses.has(address):
-			addresses.append(address)
-
-	if addresses.is_empty():
-		addresses.append("No LAN IPv4 address found; check the network adapter.")
-	return addresses
