@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://4fhnhk28s748"]
 
 [ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://table.gd" id="1_jd0nb"]
+[ext_resource type="Texture2D" uid="uid://dhtm6dgievwiv" path="res://Assets/Table_Board1.png" id="2_v5i0k"]
 
 [node name="table" type="Control" unique_id=37574144]
 layout_mode = 3
@@ -152,5 +153,10 @@ text = "Target Number"
 horizontal_alignment = 1
 vertical_alignment = 2
 autowrap_mode = 3
+
+[node name="TableBoard1" type="Sprite2D" parent="." unique_id=1006507919]
+show_behind_parent = true
+position = Vector2(581, 316)
+texture = ExtResource("2_v5i0k")
 
 [connection signal="pressed" from="PlayerInterface/Submit" to="." method="_on_submit_pressed"]
