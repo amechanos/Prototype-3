@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dpeyf62x5cpgp"
+path="res://.godot/imported/Card place down.wav-89fd639e9171a9b030752dc54fad9e03.sample"
+
+[deps]
+
+source_file="res://SFX/Card place down.wav"
+dest_files=["res://.godot/imported/Card place down.wav-89fd639e9171a9b030752dc54fad9e03.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

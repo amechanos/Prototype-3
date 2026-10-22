@@ -37,6 +37,10 @@ prototype.
    busts go to the player who used the most cards. The winner discards the
    cards played; the loser keeps them. First player with an empty hand wins.
 
+For table debugging, run `table.tscn` directly in a debug build. When no game
+players are loaded, it starts an offline practice round with the full 50-card
+deck. This debug setup is not used in release builds or LAN games.
+
 Special cards: King (choose 1-10), Queen (value 1; if the opponent wins, each
 Queen spares 50% of their discards, rounded down, so two Queens cancel the
 discard; Face/Joker cards are spared

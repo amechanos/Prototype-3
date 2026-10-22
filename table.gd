@@ -3,12 +3,38 @@ extends Control
 const Rules = preload("res://rules.gd")
 const RESULT_PAUSE := 10.0
 const DEADLINE_GRACE := 5.0
-const EQUATION_WIDTH := 490.0
-const EQUATION_HEIGHT := 150.0
-const EQUATION_GAP := 6.0
+const DEAL_OFFSCREEN := 300.0
+const DEAL_PEEK := 120.0
+const DEAL_SLIDE_IN := 0.5
+const DEAL_HOLD := 0.6
+const DEAL_SETTLE := 0.5
+const DEAL_SPREAD := 0.9
+const DEAL_STACK_SEPARATION := -96
+const HAND_SEPARATION := 8
+const SELECT_LIFT := 12.0
+const CARD_SIZE := Vector2(100, 136)
+const PILL_COLOR_BG := Color(0.1, 0.1, 0.1, 0.85)
+const PILL_COLOR_NEUTRAL := Color(0.35, 0.35, 0.4, 0.9)
+const PILL_COLOR_RAISE := Color(0.25, 0.6, 0.35, 0.95)
+const PILL_COLOR_LOWER := Color(0.7, 0.28, 0.28, 0.95)
+const DEBUG_DECK_CARD_COUNTS := {
+	"1": 3, "2": 3, "3": 3, "4": 3, "5": 3,
+	"6": 3, "7": 3, "8": 3, "9": 3, "10": 3,
+	"jack": 3, "queen": 3, "king": 3, "joker": 2,
+	"minus": 3, "multiplication": 3, "division": 3,
+}
 
-@onready var equation_flow: HFlowContainer = $PlayerInterface/EQDisplay
+const DEBUG_OPPONENT_CARDS := 10
+
+const SFX_SHUFFLE := preload("res://SFX/Insane shuffle.wav")
+const SFX_DEAL := preload("res://SFX/Card place down.wav")
+const SFX_PICK := preload("res://SFX/Card Pick.mp3")
+
+@onready var equation_label: Label = $PlayerInterface/EQDisplay
 @onready var submit_button: Button = $PlayerInterface/Submit
+
+@onready var playerHeading: Label = $playerCards/HandLayout/HandHeading
+@onready var opponentHeading: Label = $opponentCards/HandLayout/HandHeading
 
 @onready var timer_label: Label = $UI/Timer
 @onready var round_counter: Label = $UI/Round
@@ -16,7 +42,7 @@ const EQUATION_GAP := 6.0
 @onready var information: Label = $UI/Info
 
 @onready var player_cards_container: HBoxContainer = $playerCards/HandLayout/ScrollContainer/HBoxContainer
-@onready var opponent_cards_container: HBoxContainer = $opponentCards/HandLayout/ScrollContainer2/HBoxContainer
+@onready var opponent_cards_container: HBoxContainer = $opponentCards/HandLayout/ScrollContainer/HBoxContainer
 @onready var player_heading: Label = $playerCards/HandLayout/HandHeading
 @onready var opponent_heading: Label = $opponentCards/HandLayout/HandHeading
 
@@ -44,11 +70,18 @@ var selected_cards: Array[Button] = []
 var card_params: Dictionary = {}
 var has_submitted := false
 var time_left := -1.0
-var equation_card_size := Vector2(56, 64)
 
 func _ready() -> void:
+	playerHeading.hide()
+	opponentHeading.hide()
 	information.text = " "
 	my_id = multiplayer.get_unique_id()
+	if multiplayer.multiplayer_peer == null and Global.game_players.is_empty():
+		Global.game_players = [{
+			"peer_id": my_id,
+			"name": "Debug Player",
+			"cards": [],
+		}]
 	for player_data in Global.game_players:
 		var peer_id := int(player_data.get("peer_id", -1))
 		player_ids.append(peer_id)
@@ -109,8 +142,25 @@ func _host_begin() -> void:
 				"value": int(card.get("value", 1)),
 			})
 			next_uid += 1
+		if OS.is_debug_build() and player_ids.size() == 1 and hand.is_empty():
+			hand = _make_debug_player_deck()
 		hands[int(player_data.get("peer_id", -1))] = hand
 	_host_start_round()
+
+func _is_debug_solo() -> bool:
+	return OS.is_debug_build() and player_ids.size() == 1
+
+func _make_debug_player_deck() -> Array:
+	var deck: Array = []
+	for card_name in DEBUG_DECK_CARD_COUNTS:
+		for _copy_index in range(DEBUG_DECK_CARD_COUNTS[card_name]):
+			deck.append({
+				"uid": next_uid,
+				"name": card_name,
+				"value": int(card_name) if card_name.is_valid_int() else 1,
+			})
+			next_uid += 1
+	return deck
 
 func _host_start_round() -> void:
 	if game_finished:
@@ -238,11 +288,15 @@ func _receive_round(hand: Array, counts: Dictionary, target: int, round_no: int)
 	for peer_id in counts:
 		if int(peer_id) != my_id:
 			opponent_count += int(counts[peer_id])
+	if _is_debug_solo():
+		opponent_count = DEBUG_OPPONENT_CARDS
 	selected_cards.clear()
 	_render_hand()
 	_render_opponent()
-	_refresh_equation()
+	_refresh_selection()
 	round_counter.text = "Round %d" % round_no
+	if round_no == 1:
+		_play_deal_animation()
 
 @rpc("authority", "call_remote", "reliable")
 func _start_countdown(seconds: float) -> void:
@@ -298,7 +352,7 @@ func _show_result(result: Dictionary) -> void:
 	selected_cards.clear()
 	_render_hand()
 	_render_opponent()
-	_refresh_equation()
+	_refresh_selection()
 	#information.text = " "
 
 @rpc("authority", "call_remote", "reliable")
@@ -309,7 +363,7 @@ func _game_over(winner_peer: int, note: String) -> void:
 	has_submitted = true
 	selected_cards.clear()
 	_render_hand()
-	_refresh_equation()
+	_refresh_selection()
 	var message := note
 	if winner_peer == my_id:
 		message += " You win - you disposed of all your cards!" if note == "" else " You win!"
@@ -325,15 +379,124 @@ func _render_hand() -> void:
 	player_card_buttons.clear()
 	for card_variant in my_hand:
 		var card: Dictionary = card_variant
+		var slot := Control.new()
+		slot.custom_minimum_size = CARD_SIZE + Vector2(0, SELECT_LIFT)
 		var card_button := Button.new()
 		card_button.set_meta("card", card)
 		card_button.toggle_mode = true
-		card_button.custom_minimum_size = Vector2(100, 136)
+		card_button.size = CARD_SIZE
+		card_button.position = Vector2(0, SELECT_LIFT)
 		card_button.disabled = has_submitted or game_finished
 		card_button.toggled.connect(_on_card_toggled.bind(card_button))
 		card_button.text = _card_title(card)
-		player_cards_container.add_child(card_button)
+		card_button.add_child(_make_order_badge())
+		var param_control := _make_param_control(card)
+		if param_control != null:
+			card_button.add_child(param_control)
+			card_button.set_meta("param_control", param_control)
+		slot.add_child(card_button)
+		slot.set_meta("button", card_button)
+		player_cards_container.add_child(slot)
 		player_card_buttons.append(card_button)
+
+func _make_order_badge() -> Label:
+	var badge := Label.new()
+	badge.name = "OrderBadge"
+	badge.custom_minimum_size = Vector2(24, 24)
+	badge.position = Vector2(6, 6)
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge.visible = false
+	var style := StyleBoxFlat.new()
+	style.bg_color = PILL_COLOR_BG
+	style.set_corner_radius_all(12)
+	badge.add_theme_stylebox_override("normal", style)
+	return badge
+
+func _make_param_control(card: Dictionary) -> Control:
+	var card_name := str(card["name"])
+	var uid: int = card["uid"]
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 2)
+	if card_name == "king":
+		var value_label := Label.new()
+		value_label.text = str(int(card_params.get(uid, _default_param(card_name))))
+		value_label.custom_minimum_size = Vector2(28, 0)
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var minus := _make_pill_button("-", PILL_COLOR_NEUTRAL)
+		var plus := _make_pill_button("+", PILL_COLOR_NEUTRAL)
+		minus.pressed.connect(_step_king.bind(uid, -1, value_label))
+		plus.pressed.connect(_step_king.bind(uid, 1, value_label))
+		row.add_child(minus)
+		row.add_child(value_label)
+		row.add_child(plus)
+	elif card_name == "jack":
+		var group := ButtonGroup.new()
+		var current := int(card_params.get(uid, _default_param(card_name)))
+		var raise := _make_pill_button("+3", PILL_COLOR_RAISE, group)
+		var lower := _make_pill_button("-3", PILL_COLOR_LOWER, group)
+		raise.tooltip_text = "Raise the target by 3"
+		lower.tooltip_text = "Lower the target by 3"
+		raise.button_pressed = current >= 0
+		lower.button_pressed = current < 0
+		raise.toggled.connect(_on_jack_picked.bind(uid, Rules.JACK_DELTA))
+		lower.toggled.connect(_on_jack_picked.bind(uid, -Rules.JACK_DELTA))
+		raise.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lower.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(raise)
+		row.add_child(lower)
+	else:
+		return null
+
+	var pill := PanelContainer.new()
+	pill.add_theme_stylebox_override("panel", _pill_style(PILL_COLOR_BG, 4))
+	pill.add_child(row)
+	pill.position = Vector2(4, CARD_SIZE.y - 36)
+	pill.size = Vector2(CARD_SIZE.x - 8, 30)
+	pill.visible = false
+	_set_param_control_locked(pill, has_submitted or game_finished)
+	return pill
+
+func _pill_style(color: Color, margin := 0) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.set_corner_radius_all(12)
+	style.set_content_margin_all(margin)
+	return style
+
+func _make_pill_button(text: String, active_color: Color, group: ButtonGroup = null) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(26, 22)
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_font_size_override("font_size", 14)
+	button.add_theme_stylebox_override("normal", _pill_style(Color.TRANSPARENT))
+	button.add_theme_stylebox_override("hover", _pill_style(active_color.lerp(PILL_COLOR_BG, 0.55)))
+	button.add_theme_stylebox_override("pressed", _pill_style(active_color))
+	button.add_theme_stylebox_override("hover_pressed", _pill_style(active_color))
+	if group != null:
+		button.toggle_mode = true
+		button.button_group = group
+	return button
+
+func _set_param_control_locked(control: Control, locked: bool) -> void:
+	for node in control.find_children("*", "Button", true, false):
+		(node as Button).mouse_filter = Control.MOUSE_FILTER_IGNORE if locked else Control.MOUSE_FILTER_STOP
+
+func _step_king(uid: int, delta: int, value_label: Label) -> void:
+	var value := clampi(int(card_params.get(uid, _default_param("king"))) + delta, Rules.KING_MIN, Rules.KING_MAX)
+	card_params[uid] = value
+	value_label.text = str(value)
+	_refresh_selection()
+
+func _on_jack_picked(pressed: bool, uid: int, delta: int) -> void:
+	if not pressed:
+		return
+	card_params[uid] = delta
+	_refresh_selection()
 
 func _render_opponent() -> void:
 	for child in opponent_cards_container.get_children():
@@ -343,13 +506,16 @@ func _render_opponent() -> void:
 		if peer_id != my_id:
 			opponent_names.append(str(names.get(peer_id, "Opponent")))
 	if opponent_names.is_empty():
-		opponent_heading.text = "No opponent (practice round)"
-		return
+		if _is_debug_solo():
+			opponent_names.append("Debug Opponent")
+		else:
+			opponent_heading.text = "No opponent (practice round)"
+			return
 	opponent_heading.text = "%s (%d cards, face down)" % [", ".join(opponent_names), opponent_count]
 	for _index in range(opponent_count):
 		var card_back := Button.new()
 		card_back.text = "?"
-		card_back.custom_minimum_size = Vector2(100, 136)
+		card_back.custom_minimum_size = CARD_SIZE
 		card_back.disabled = true
 		opponent_cards_container.add_child(card_back)
 
@@ -365,9 +531,70 @@ func _on_card_toggled(pressed: bool, card_button: Button) -> void:
 	if pressed:
 		if not selected_cards.has(card_button):
 			selected_cards.append(card_button)
+		_play_sfx(SFX_PICK)
 	else:
 		selected_cards.erase(card_button)
-	_refresh_equation()
+	_set_card_lifted(card_button, pressed)
+	_refresh_selection()
+
+func _play_sfx(stream: AudioStream, volume_db := 0.0) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.volume_db = volume_db
+	add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
+func _set_card_lifted(card_button: Button, lifted: bool) -> void:
+	if card_button.has_meta("lift_tween"):
+		var previous: Tween = card_button.get_meta("lift_tween")
+		if previous != null and previous.is_valid():
+			previous.kill()
+	var tween := card_button.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(card_button, "position:y", 0.0 if lifted else SELECT_LIFT, 0.18)
+	card_button.set_meta("lift_tween", tween)
+
+func _play_deal_animation() -> void:
+	var piles: Array[Control] = [$playerCards, $opponentCards]
+	var rows: Array[BoxContainer] = [player_cards_container, opponent_cards_container]
+	var off_screen_y: Array[float] = [DEAL_OFFSCREEN, -DEAL_OFFSCREEN]
+	var peek_y: Array[float] = [-DEAL_PEEK, DEAL_PEEK]
+	var deck_x := get_viewport_rect().size.x * 0.5 - 100.0
+
+	var locked: Array[Button] = []
+	for row in rows:
+		for child in row.get_children():
+			var button: Button = child.get_meta("button") if child.has_meta("button") else child as Button
+			if button != null and not button.disabled:
+				button.disabled = true
+				locked.append(button)
+
+	_play_sfx(SFX_SHUFFLE)
+	var finish: Tween
+	for index in range(piles.size()):
+		var pile := piles[index]
+		var row := rows[index]
+		var rest := pile.position
+		row.add_theme_constant_override("separation", DEAL_STACK_SEPARATION)
+		pile.position = rest + Vector2(deck_x, off_screen_y[index])
+		var tween := pile.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		tween.tween_property(pile, "position", rest + Vector2(deck_x, peek_y[index]), DEAL_SLIDE_IN)
+		tween.tween_interval(DEAL_HOLD)
+		tween.tween_callback(_play_sfx.bind(SFX_DEAL, -6.0))
+		tween.tween_property(pile, "position", rest, DEAL_SETTLE)
+		tween.parallel().tween_method(
+			func(value: float) -> void: row.add_theme_constant_override("separation", roundi(value)),
+			float(DEAL_STACK_SEPARATION), float(HAND_SEPARATION), DEAL_SPREAD
+		).set_ease(Tween.EASE_IN_OUT)
+		finish = tween
+		
+	playerHeading.show()
+	opponentHeading.show()
+
+	await finish.finished
+	for card in locked:
+		if is_instance_valid(card):
+			card.disabled = has_submitted or game_finished
 
 func _default_param(card_name: String) -> int:
 	return Rules.JACK_DELTA if card_name == "jack" else 5
@@ -382,60 +609,35 @@ func _played_cards() -> Array:
 		cards.append(card)
 	return cards
 
-func _refresh_equation() -> void:
-	for child in equation_flow.get_children():
-		child.queue_free()
-
+func _refresh_selection() -> void:
 	for card_button in player_card_buttons:
-		var card: Dictionary = card_button.get_meta("card")
-		card_button.visible = not selected_cards.has(card_button)
-		card_button.text = _card_title(card)
+		var selected_index := selected_cards.find(card_button)
+		var badge := card_button.get_node("OrderBadge") as Label
+		badge.visible = selected_index != -1
+		badge.text = str(selected_index + 1)
+		if card_button.has_meta("param_control"):
+			var param_control: Control = card_button.get_meta("param_control")
+			var show_control := selected_index != -1
+			if show_control and not param_control.visible:
+				param_control.modulate.a = 0.0
+				param_control.create_tween().tween_property(param_control, "modulate:a", 1.0, 0.15)
+			param_control.visible = show_control
 
-	equation_card_size = _get_equation_card_size(selected_cards.size())
-	for index in range(selected_cards.size()):
-		var selected_button := selected_cards[index]
-		var selected_card: Dictionary = selected_button.get_meta("card")
-		equation_flow.add_child(_make_equation_entry(selected_card, index + 1, selected_button))
-
+	equation_label.text = _equation_text()
 	player_heading.text = "Your hand. (%d selected)" % selected_cards.size()
 
-func _make_equation_entry(card: Dictionary, _order: int, hand_button: Button) -> Control:
-	var entry := VBoxContainer.new()
-	var title := Button.new()
-	title.text = _card_title(card)
-	title.custom_minimum_size = equation_card_size
-	title.add_theme_font_size_override("font_size", maxi(9, int(16 * equation_card_size.x / 56.0)))
-	title.disabled = has_submitted or game_finished
-	title.pressed.connect(_on_equation_card_pressed.bind(hand_button))
-	entry.add_child(title)
-	var card_name := str(card["name"])
-	var uid: int = card["uid"]
-	if card_name == "king":
-		var spin := SpinBox.new()
-		spin.min_value = Rules.KING_MIN
-		spin.max_value = Rules.KING_MAX
-		spin.value = int(card_params.get(uid, _default_param(card_name)))
-		spin.editable = not has_submitted
-		spin.value_changed.connect(_on_king_changed.bind(uid))
-		entry.add_child(spin)
-	elif card_name == "jack":
-		var choice := OptionButton.new()
-		choice.add_item("Target +3", 0)
-		choice.add_item("Target -3", 1)
-		choice.selected = 0 if int(card_params.get(uid, _default_param(card_name))) >= 0 else 1
-		choice.disabled = has_submitted
-		choice.item_selected.connect(_on_jack_changed.bind(uid))
-		entry.add_child(choice)
-	return entry
-
-func _on_equation_card_pressed(hand_button: Button) -> void:
-	hand_button.button_pressed = false
-
-func _on_king_changed(value: float, uid: int) -> void:
-	card_params[uid] = int(value)
-
-func _on_jack_changed(index: int, uid: int) -> void:
-	card_params[uid] = Rules.JACK_DELTA if index == 0 else -Rules.JACK_DELTA
+func _equation_text() -> String:
+	if selected_cards.is_empty():
+		return "Pick cards to build your equation"
+	var parts: Array[String] = []
+	var previous_was_operand := false
+	for card in _played_cards():
+		var is_operand := not Rules.is_operator(str(card["name"]))
+		if is_operand and previous_was_operand:
+			parts.append("+")
+		parts.append(Rules.card_label(card))
+		previous_was_operand = is_operand
+	return " ".join(parts)
 
 func _on_submit_pressed() -> void:
 	_submit_current_hand(false)
@@ -462,24 +664,6 @@ func _submit_current_hand(auto_submit: bool) -> void:
 func _lock_hand() -> void:
 	for card_button in player_card_buttons:
 		card_button.disabled = true
-	for child in equation_flow.get_children():
-		for part in child.get_children():
-			if part is SpinBox:
-				part.editable = false
-			elif part is OptionButton:
-				part.disabled = true
-			elif part is Button:
-				part.disabled = true
+		if card_button.has_meta("param_control"):
+			_set_param_control_locked(card_button.get_meta("param_control"), true)
 	submit_button.disabled = true
-	
-func _get_equation_card_size(count: int) -> Vector2:
-	var width := 56.0
-	while width > 28.0:
-		var height := width * 1.15
-		var columns := maxi(1, int((EQUATION_WIDTH + EQUATION_GAP) / (width + EQUATION_GAP)))
-		var rows := ceili(float(count) / columns)
-		var needed := rows * height + (rows - 1) * EQUATION_GAP
-		if needed <= EQUATION_HEIGHT:
-			break
-		width -= 4.0
-	return Vector2(width, width * 1.15)
