@@ -14,10 +14,10 @@ script = ExtResource("1_jd0nb")
 
 [node name="playerCards" type="MarginContainer" parent="." unique_id=139255729]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 450.0
-offset_right = 1128.0
-offset_bottom = 658.0
+offset_left = 56.0
+offset_top = 776.0
+offset_right = 1856.0
+offset_bottom = 1000.0
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
@@ -43,10 +43,10 @@ theme_override_constants/separation = 8
 
 [node name="opponentCards" type="MarginContainer" parent="." unique_id=1546835422]
 layout_mode = 0
-offset_left = 24.0
-offset_top = -108.0
-offset_right = 1128.0
-offset_bottom = 84.0
+offset_left = 48.0
+offset_top = -40.0
+offset_right = 1880.0
+offset_bottom = 152.0
 theme_override_constants/margin_left = 12
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
@@ -72,24 +72,24 @@ text = "Your Opponent"
 
 [node name="PlayerInterface" type="Control" parent="." unique_id=2117873282]
 anchors_preset = 0
-offset_left = 8.0
-offset_top = 368.0
-offset_right = 8.0
-offset_bottom = 368.0
+offset_left = 688.0
+offset_top = 704.0
+offset_right = 688.0
+offset_bottom = 704.0
 
 [node name="Submit" type="Button" parent="PlayerInterface" unique_id=991628963]
 layout_mode = 0
-offset_left = 992.0
-offset_top = 80.0
+offset_left = 976.0
+offset_top = 64.0
 offset_right = 1104.0
 offset_bottom = 128.0
 text = "Submit"
 
 [node name="EQDisplay" type="Label" parent="PlayerInterface" unique_id=1731030582]
 layout_mode = 0
-offset_left = 288.0
-offset_top = 80.0
-offset_right = 984.0
+offset_left = -354.0
+offset_top = 64.0
+offset_right = 958.0
 offset_bottom = 130.0
 theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
@@ -97,18 +97,20 @@ vertical_alignment = 1
 
 [node name="UI" type="Control" parent="." unique_id=2057037047]
 anchors_preset = 0
-offset_top = 192.0
-offset_right = 1152.0
-offset_bottom = 432.0
+offset_left = 384.0
+offset_top = 392.0
+offset_right = 1536.0
+offset_bottom = 632.0
 mouse_filter = 2
 
 [node name="Timer" type="Label" parent="UI" unique_id=770616339]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
 offset_left = 480.0
-offset_top = 64.0
+offset_top = 52.0
 offset_right = 672.0
-offset_bottom = 124.0
+offset_bottom = 112.0
+theme_override_font_sizes/font_size = 24
 text = "TIMER"
 horizontal_alignment = 1
 autowrap_mode = 3
@@ -117,8 +119,10 @@ autowrap_mode = 3
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
 offset_left = 488.0
+offset_top = -4.0
 offset_right = 664.0
-offset_bottom = 60.0
+offset_bottom = 56.0
+theme_override_font_sizes/font_size = 24
 text = "ROUND 0"
 horizontal_alignment = 1
 vertical_alignment = 2
@@ -127,10 +131,11 @@ autowrap_mode = 3
 [node name="Info" type="Label" parent="UI" unique_id=1172554653]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_left = 32.0
-offset_top = 24.0
-offset_right = 480.0
-offset_bottom = 176.0
+offset_left = 40.0
+offset_top = 48.0
+offset_right = 488.0
+offset_bottom = 200.0
+theme_override_font_sizes/font_size = 24
 text = "TEXT HERE"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -143,7 +148,7 @@ offset_left = 512.0
 offset_top = 120.0
 offset_right = 632.0
 offset_bottom = 200.0
-theme_override_font_sizes/font_size = 56
+theme_override_font_sizes/font_size = 72
 text = "?"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -152,10 +157,11 @@ autowrap_mode = 3
 [node name="TargetText" type="Label" parent="UI" unique_id=1040934505]
 custom_minimum_size = Vector2(80, 40)
 layout_mode = 0
-offset_left = 512.0
+offset_left = 456.0
 offset_top = 88.0
-offset_right = 640.0
+offset_right = 696.0
 offset_bottom = 128.0
+theme_override_font_sizes/font_size = 24
 text = "Target Number"
 horizontal_alignment = 1
 vertical_alignment = 2
@@ -164,8 +170,8 @@ autowrap_mode = 3
 [node name="BG" type="TextureRect" parent="." unique_id=1431901454]
 show_behind_parent = true
 layout_mode = 0
-offset_right = 1152.0
-offset_bottom = 648.0
+offset_right = 1920.0
+offset_bottom = 1082.0
 mouse_filter = 2
 texture = ExtResource("2_v5i0k")
 expand_mode = 2

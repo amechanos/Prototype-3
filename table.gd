@@ -280,6 +280,7 @@ func _receive_round(hand: Array, counts: Dictionary, target: int, round_no: int)
 	target_number = target
 	target_num_label.text = str(target)
 	has_submitted = false
+	submit_button.disabled = game_finished
 	time_left = Rules.ROUND_LIMIT_SECONDS
 	timer_label.text = ""
 	opponent_heading.text = ""
