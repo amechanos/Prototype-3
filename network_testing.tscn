@@ -59,7 +59,7 @@ layout_mode = 2
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-placeholder_text = "Host LAN address (for example, 192.168.1.20)"
+placeholder_text = "Host LAN or public IPv4 address"
 
 [node name="JoinButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=1829355659]
 unique_name_in_owner = true
@@ -77,6 +77,7 @@ text = "Disconnect"
 [node name="IP" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=1232701562]
 unique_name_in_owner = true
 layout_mode = 2
+autowrap_mode = 3
 
 [node name="Status" type="Label" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=470044561]
 unique_name_in_owner = true

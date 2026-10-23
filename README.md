@@ -14,7 +14,8 @@ prototype.
    scene).
 3. Select **Play** to open the card board offline.
 4. For a shared LAN board, select **Host Game** on one device. Enter the host's
-   LAN IPv4 address on the other device and select **Join Game**.
+   LAN IPv4 address on the other device and select **Join Game**. The lobby
+   also looks up the public IPv4 address for remote connections.
 5. Once connected, the host selects **Play** to open the shared card board.
    Both players see the same shuffled board; collecting a card removes it for
    everyone and adds it to the collector's local deck.
@@ -48,14 +49,19 @@ first), Jack (value 10; its player chooses to raise or lower the target by 3),
 Joker (value 1; swaps your hand result with your opponent's). Queens and
 Jokers are discarded as soon as they are played.
 
-The lobby uses ENet over UDP port `7000` and accepts one remote player. Both
-devices need to be able to communicate over the local network. The host's
-firewall may need to allow inbound UDP traffic on port `7000`.
+The lobby uses ENet over UDP port `7000` and accepts one remote player. For LAN
+play, both devices need to be able to communicate over the local network. For
+play across networks, give the joining player the host's public IPv4 address,
+allow inbound UDP port `7000` in the host's firewall, and forward UDP port
+`7000` from the host's router to the host device. Public Wi-Fi restrictions or
+carrier-grade NAT can prevent direct connections; those networks require an
+internet relay, which this prototype does not provide.
 
 ## Current scope
 
-- Host or join a LAN room using an IP address.
-- Show the host's LAN address and the connected player count.
+- Host or join a room using a LAN or public IPv4 address.
+- Show the LAN address, look up the public IPv4 address, and display the
+  connected player count.
 - Report connection failures and disconnects.
 - Shuffle and display the 50-card deck as labelled board buttons, then collect
   clicked cards into the collector's personal deck.
@@ -63,7 +69,7 @@ firewall may need to allow inbound UDP traffic on port `7000`.
   synchronize turns and draws over the existing LAN host connection.
 - Show each player's collected cards in a single-row table hand, allow local
   card selection, and keep opponents' cards face down.
-- No automatic LAN discovery or internet matchmaking.
+- No automatic LAN discovery, automatic port forwarding, or internet relay.
 
 ## Repository notes
 
