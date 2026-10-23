@@ -156,7 +156,8 @@ autowrap_mode = 3
 
 [node name="TableBoard1" type="Sprite2D" parent="." unique_id=1006507919]
 show_behind_parent = true
-position = Vector2(581, 316)
+position = Vector2(573.5, 324.99997)
+scale = Vector2(1.0875782, 1.0557375)
 texture = ExtResource("2_v5i0k")
 
 [connection signal="pressed" from="PlayerInterface/Submit" to="." method="_on_submit_pressed"]
