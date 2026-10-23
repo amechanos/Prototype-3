@@ -17,14 +17,6 @@ const PILL_COLOR_BG := Color(0.1, 0.1, 0.1, 0.85)
 const PILL_COLOR_NEUTRAL := Color(0.35, 0.35, 0.4, 0.9)
 const PILL_COLOR_RAISE := Color(0.25, 0.6, 0.35, 0.95)
 const PILL_COLOR_LOWER := Color(0.7, 0.28, 0.28, 0.95)
-const DEBUG_DECK_CARD_COUNTS := {
-	"1": 3, "2": 3, "3": 3, "4": 3, "5": 3,
-	"6": 3, "7": 3, "8": 3, "9": 3, "10": 3,
-	"jack": 3, "queen": 3, "king": 3, "joker": 2,
-	"minus": 3, "multiplication": 3, "division": 3,
-}
-
-const DEBUG_OPPONENT_CARDS := 10
 
 const SFX_SHUFFLE := preload("res://SFX/Insane shuffle.wav")
 const SFX_DEAL := preload("res://SFX/Card place down.wav")
@@ -84,12 +76,6 @@ func _ready() -> void:
 	_update_pickup_button()
 	information.text = " "
 	my_id = multiplayer.get_unique_id()
-	if multiplayer.multiplayer_peer == null and Global.game_players.is_empty():
-		Global.game_players = [{
-			"peer_id": my_id,
-			"name": "Debug Player",
-			"cards": [],
-		}]
 	for player_data in Global.game_players:
 		var peer_id := int(player_data.get("peer_id", -1))
 		player_ids.append(peer_id)
@@ -150,25 +136,8 @@ func _host_begin() -> void:
 				"value": int(card.get("value", 1)),
 			})
 			next_uid += 1
-		if OS.is_debug_build() and player_ids.size() == 1 and hand.is_empty():
-			hand = _make_debug_player_deck()
 		hands[int(player_data.get("peer_id", -1))] = hand
 	_host_start_round()
-
-func _is_debug_solo() -> bool:
-	return OS.is_debug_build() and player_ids.size() == 1
-
-func _make_debug_player_deck() -> Array:
-	var deck: Array = []
-	for card_name in DEBUG_DECK_CARD_COUNTS:
-		for _copy_index in range(DEBUG_DECK_CARD_COUNTS[card_name]):
-			deck.append({
-				"uid": next_uid,
-				"name": card_name,
-				"value": int(card_name) if card_name.is_valid_int() else 1,
-			})
-			next_uid += 1
-	return deck
 
 func _host_start_round() -> void:
 	if game_finished:
@@ -325,8 +294,6 @@ func _receive_round(
 	for peer_id in counts:
 		if int(peer_id) != my_id:
 			opponent_count += int(counts[peer_id])
-	if _is_debug_solo():
-		opponent_count = DEBUG_OPPONENT_CARDS
 	selected_cards.clear()
 	_render_hand()
 	_render_opponent()
@@ -633,11 +600,8 @@ func _render_opponent() -> void:
 		if peer_id != my_id:
 			opponent_names.append(str(names.get(peer_id, "Opponent")))
 	if opponent_names.is_empty():
-		if _is_debug_solo():
-			opponent_names.append("Debug Opponent")
-		else:
-			opponent_heading.text = "No opponent (practice round)"
-			return
+		opponent_heading.text = "No opponent (practice round)"
+		return
 	opponent_heading.text = "%s (%d cards, face down)" % [", ".join(opponent_names), opponent_count]
 	for _index in range(opponent_count):
 		var card_back := Button.new()
@@ -764,7 +728,12 @@ func _equation_text() -> String:
 			parts.append("+")
 		parts.append(Rules.card_label(card))
 		previous_was_operand = is_operand
-	return " ".join(parts)
+	var text := " ".join(parts)
+	if not Global.hard_mode:
+		var evaluation := Rules.evaluate(_played_cards())
+		if bool(evaluation["valid"]):
+			text += " = %s" % Rules.format_number(float(evaluation["value"]))
+	return text
 
 func _on_submit_pressed() -> void:
 	_submit_current_hand(false)
@@ -776,7 +745,6 @@ func _submit_current_hand(auto_submit: bool) -> void:
 	if auto_submit:
 		while not cards.is_empty() and Rules.is_operator(str(cards.back()["name"])):
 			cards.pop_back()
-		cards = []
 
 	var picks: Array = []
 	for card in cards:

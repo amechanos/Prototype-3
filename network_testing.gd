@@ -12,6 +12,7 @@ var _public_ip_request: HTTPRequest
 @onready var join_button: Button = %JoinButton
 @onready var disconnect_button: Button = %DisconnectButton
 @onready var play_button: Button = %PlayButton
+@onready var hard_mode_button: CheckButton = %HardModeButton
 @onready var status_label: Label = %Status
 @onready var players_label: Label = %Players
 @onready var ip_label: Label = %IP
@@ -124,9 +125,12 @@ func _on_play_pressed() -> void:
 		if multiplayer.get_peers().is_empty():
 			_set_status("Wait for another player to join before starting.", true)
 			return
-		_start_card_board.rpc()
+		_start_card_board.rpc(Global.hard_mode)
 	else:
 		_set_status("Wait for the host to start the shared board.")
+
+func _on_hard_mode_toggled(pressed: bool) -> void:
+	Global.hard_mode = pressed
 
 func _open_card_board() -> void:
 	var error := get_tree().change_scene_to_file("res://board.tscn")
@@ -134,7 +138,8 @@ func _open_card_board() -> void:
 		push_error("Could not open the card board: %s" % error_string(error))
 
 @rpc("authority", "call_local", "reliable")
-func _start_card_board() -> void:
+func _start_card_board(hard_mode: bool) -> void:
+	Global.hard_mode = hard_mode
 	_open_card_board()
 
 func _on_peer_connected(peer_id: int) -> void:
@@ -169,6 +174,9 @@ func _reset_connection() -> void:
 	_update_players()
 
 func _set_connected_controls(connected: bool) -> void:
+	hard_mode_button.visible = connected and multiplayer.is_server()
+	if not connected:
+		hard_mode_button.button_pressed = false
 	host_button.disabled = connected
 	join_button.disabled = connected
 	join_address.editable = not connected
