@@ -32,6 +32,7 @@ const SFX_PICK := preload("res://SFX/Card Pick.mp3")
 
 @onready var equation_label: Label = $PlayerInterface/EQDisplay
 @onready var submit_button: Button = $PlayerInterface/Submit
+@onready var pickup_button: Button = $PlayerInterface/Pickup
 
 @onready var playerHeading: Label = $playerCards/HandLayout/HandHeading
 @onready var opponentHeading: Label = $opponentCards/HandLayout/HandHeading
@@ -52,8 +53,10 @@ var player_ids: Array[int] = []
 
 # Host-only state.
 var hands: Dictionary = {}
+var discarded_cards: Array = []
 var ready_peers: Array[int] = []
 var submissions: Dictionary = {}
+var redrawn_peers: Dictionary = {}
 var round_active := false
 var round_number := 0
 var base_target := 21
@@ -69,11 +72,16 @@ var player_card_buttons: Array[Button] = []
 var selected_cards: Array[Button] = []
 var card_params: Dictionary = {}
 var has_submitted := false
+var has_redrawn := false
+var redraw_pending := false
+var round_received := false
+var discard_pile_count := 0
 var time_left := -1.0
 
 func _ready() -> void:
 	playerHeading.hide()
 	opponentHeading.hide()
+	_update_pickup_button()
 	information.text = " "
 	my_id = multiplayer.get_unique_id()
 	if multiplayer.multiplayer_peer == null and Global.game_players.is_empty():
@@ -168,12 +176,19 @@ func _host_start_round() -> void:
 	round_number += 1
 	base_target = Rules.roll_target()
 	submissions.clear()
+	redrawn_peers.clear()
 	round_active = true
 	var counts := {}
 	for peer_id in player_ids:
 		counts[peer_id] = (hands[peer_id] as Array).size()
 	for peer_id in player_ids:
-		_send(peer_id, &"_receive_round", [hands[peer_id], counts, base_target, round_number])
+		_send(peer_id, &"_receive_round", [
+			hands[peer_id],
+			counts,
+			base_target,
+			round_number,
+			discarded_cards.size(),
+		])
 	_host_deadline(round_number, Rules.ROUND_LIMIT_SECONDS)
 
 @rpc("any_peer", "call_remote", "reliable")
@@ -184,9 +199,15 @@ func _host_receive_submit(picks: Array) -> void:
 	if not player_ids.has(sender) or submissions.has(sender):
 		return
 
-	var played := _build_played_cards(sender, picks)
-	submissions[sender] = played
-	_broadcast(&"_show_submission", [sender, played])
+	_host_record_submission(sender, picks)
+
+func _host_record_submission(peer_id: int, picks: Array) -> void:
+	if not multiplayer.is_server() or not round_active or submissions.has(peer_id):
+		return
+
+	var played := _build_played_cards(peer_id, picks)
+	submissions[peer_id] = played
+	_broadcast(&"_show_submission", [peer_id, played])
 	if submissions.size() == player_ids.size():
 		_host_resolve()
 	elif submissions.size() == 1:
@@ -242,6 +263,10 @@ func _host_resolve() -> void:
 	for index in range(player_ids.size()):
 		var peer_id: int = player_ids[index]
 		var discard_uids: Array = result["discard"][index]
+		for card_variant in hands[peer_id]:
+			var card: Dictionary = card_variant
+			if discard_uids.has(int(card["uid"])):
+				discarded_cards.append(card.duplicate(true))
 		hands[peer_id] = (hands[peer_id] as Array).filter(
 			func(card: Dictionary) -> bool: return not discard_uids.has(int(card["uid"]))
 		)
@@ -275,11 +300,22 @@ func _on_server_disconnected() -> void:
 # ------------------------------------------------------------ client: rounds
 
 @rpc("authority", "call_remote", "reliable")
-func _receive_round(hand: Array, counts: Dictionary, target: int, round_no: int) -> void:
+func _receive_round(
+	hand: Array,
+	counts: Dictionary,
+	target: int,
+	round_no: int,
+	current_discard_count: int
+) -> void:
 	my_hand = hand.duplicate(true)
 	target_number = target
 	target_num_label.text = str(target)
+	discard_pile_count = current_discard_count
 	has_submitted = false
+	has_redrawn = false
+	redraw_pending = false
+	round_received = true
+	_update_pickup_button()
 	submit_button.disabled = game_finished
 	time_left = Rules.ROUND_LIMIT_SECONDS
 	timer_label.text = ""
@@ -299,6 +335,91 @@ func _receive_round(hand: Array, counts: Dictionary, target: int, round_no: int)
 	if round_no == 1:
 		_play_deal_animation()
 
+@rpc("any_peer", "call_remote", "reliable")
+func _host_redraw_numbers() -> void:
+	if not multiplayer.is_server() or not round_active or game_finished:
+		return
+	var sender := _sender()
+	if not player_ids.has(sender) or not hands.has(sender):
+		return
+	if submissions.has(sender) or redrawn_peers.has(sender) or discarded_cards.size() < 12:
+		_send(sender, &"_pickup_rejected", [])
+		return
+
+	var available_numbers: Array = []
+	for card_variant in discarded_cards:
+		var card: Dictionary = card_variant
+		if str(card.get("name", "")).is_valid_int():
+			available_numbers.append(card)
+	if available_numbers.is_empty():
+		_send(sender, &"_redraw_unavailable", [])
+		return
+
+	redrawn_peers[sender] = true
+	var drawn_cards: Array = []
+	var draw_count := mini(3, available_numbers.size())
+	for _index in range(draw_count):
+		var card_index := randi_range(0, available_numbers.size() - 1)
+		var card: Dictionary = available_numbers.pop_at(card_index)
+		discarded_cards.erase(card)
+		(hands[sender] as Array).append(card)
+		drawn_cards.append(card)
+	_broadcast(&"_receive_redraw", [sender, drawn_cards])
+	_host_record_submission(sender, [])
+
+@rpc("authority", "call_remote", "reliable")
+func _receive_redraw(peer_id: int, cards: Array) -> void:
+	if peer_id == my_id:
+		for card_variant in cards:
+			my_hand.append((card_variant as Dictionary).duplicate(true))
+		has_redrawn = true
+		redraw_pending = false
+		has_submitted = true
+		time_left = -1.0
+		timer_label.text = ""
+		round_counter.text = "Pickup submitted for this round."
+		selected_cards.clear()
+		_lock_hand()
+		discard_pile_count = maxi(0, discard_pile_count - cards.size())
+		information.text = "You picked up %d number card(s) and submitted nothing." % cards.size()
+		_render_hand()
+		_refresh_selection()
+	else:
+		opponent_count += cards.size()
+		discard_pile_count = maxi(0, discard_pile_count - cards.size())
+		information.text = "%s redrew %d number card(s)." % [
+			names.get(peer_id, "Your opponent"),
+			cards.size()
+		]
+		_render_opponent()
+	_update_pickup_button()
+
+@rpc("authority", "call_remote", "reliable")
+func _redraw_unavailable() -> void:
+	redraw_pending = false
+	information.text = "There are no number cards in the discard pile to redraw."
+	_update_pickup_button()
+
+@rpc("authority", "call_remote", "reliable")
+func _pickup_rejected() -> void:
+	redraw_pending = false
+	information.text = "Pickup is no longer available this round."
+	_update_pickup_button()
+
+func _on_pickup_pressed() -> void:
+	if has_submitted or has_redrawn or redraw_pending or game_finished:
+		return
+	if not round_received or discard_pile_count < 12:
+		return
+	redraw_pending = true
+	_update_pickup_button()
+	_send(1, &"_host_redraw_numbers", [])
+
+func _update_pickup_button() -> void:
+	var available := round_received and discard_pile_count >= 12 and not game_finished
+	pickup_button.visible = available and not has_submitted
+	pickup_button.disabled = has_redrawn or redraw_pending
+
 @rpc("authority", "call_remote", "reliable")
 func _start_countdown(seconds: float) -> void:
 	if has_submitted:
@@ -308,6 +429,8 @@ func _start_countdown(seconds: float) -> void:
 @rpc("authority", "call_remote", "reliable")
 func _show_result(result: Dictionary) -> void:
 	time_left = -1.0
+	round_received = false
+	_update_pickup_button()
 	timer_label.text = ""
 	var peers: Array = result["peers"]
 	var mine := peers.find(my_id)
@@ -350,6 +473,7 @@ func _show_result(result: Dictionary) -> void:
 	)
 	opponent_count = maxi(0, opponent_count - discard_other.size())
 	has_submitted = true
+	_update_pickup_button()
 	selected_cards.clear()
 	_render_hand()
 	_render_opponent()
@@ -365,6 +489,7 @@ func _game_over(winner_peer: int, note: String) -> void:
 	selected_cards.clear()
 	_render_hand()
 	_refresh_selection()
+	_update_pickup_button()
 	var message := note
 	if winner_peer == my_id:
 		message += " You win - you disposed of all your cards!" if note == "" else " You win!"
@@ -372,6 +497,7 @@ func _game_over(winner_peer: int, note: String) -> void:
 		message = "%s disposed of all their cards. You lose." % names.get(winner_peer, "Your opponent")
 	round_counter.text = message.strip_edges()
 	submit_button.disabled = true
+	_update_pickup_button()
 
 # ----------------------------------------------------------------- client: UI
 func _render_hand() -> void:
@@ -668,3 +794,4 @@ func _lock_hand() -> void:
 		if card_button.has_meta("param_control"):
 			_set_param_control_locked(card_button.get_meta("param_control"), true)
 	submit_button.disabled = true
+	_update_pickup_button()

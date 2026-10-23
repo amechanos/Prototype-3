@@ -37,6 +37,8 @@ prototype.
 9. Closest to the target without going over wins the round. Ties and double
    busts go to the player who used the most cards. The winner discards the
    cards played; the loser keeps them. First player with an empty hand wins.
+   If the shared discard pile has at least 12 cards, each player may pick up to
+   three random number cards from it once per round, before submitting.
 
 For table debugging, run `table.tscn` directly in a debug build. When no game
 players are loaded, it starts an offline practice round with the full 50-card

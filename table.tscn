@@ -85,6 +85,17 @@ offset_right = 1104.0
 offset_bottom = 128.0
 text = "Submit"
 
+[node name="Pickup" type="Button" parent="PlayerInterface" unique_id=-1294967295]
+visible = false
+layout_mode = 0
+offset_left = 976.0
+offset_top = -64.0
+offset_right = 1104.0
+offset_bottom = 48.0
+tooltip_text = "Pick up to 3 random number cards from the discard pile once per round."
+disabled = true
+text = "Pickup"
+
 [node name="EQDisplay" type="Label" parent="PlayerInterface" unique_id=1731030582]
 layout_mode = 0
 offset_left = -354.0
@@ -181,3 +192,4 @@ metadata/_edit_lock_ = true
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1139532961]
 
 [connection signal="pressed" from="PlayerInterface/Submit" to="." method="_on_submit_pressed"]
+[connection signal="pressed" from="PlayerInterface/Pickup" to="." method="_on_pickup_pressed"]
