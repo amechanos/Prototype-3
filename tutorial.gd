@@ -33,7 +33,6 @@ func _on_next_pressed() -> void:
 	body.text = text[current_page][1]
 	page_count.text = "Page %d/%d" % [current_page+1, text.size()]
 	
-
 func _ready() -> void:
 	heading.text = text[current_page][0]
 	body.text = text[current_page][1]

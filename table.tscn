@@ -186,7 +186,5 @@ expand_mode = 2
 stretch_mode = 5
 metadata/_edit_lock_ = true
 
-[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1139532961]
-
 [connection signal="pressed" from="PlayerInterface/Submit" to="." method="_on_submit_pressed"]
 [connection signal="pressed" from="PlayerInterface/Pickup" to="." method="_on_pickup_pressed"]

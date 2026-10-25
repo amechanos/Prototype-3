@@ -1,7 +1,7 @@
 extends Control
 
 const Rules = preload("res://rules.gd")
-const RESULT_PAUSE := 10.0
+const RESULT_PAUSE := 7.0
 const DEADLINE_GRACE := 5.0
 const DEAL_OFFSCREEN := 300.0
 const DEAL_PEEK := 120.0
@@ -44,6 +44,7 @@ var names: Dictionary = {}
 var player_ids: Array[int] = []
 
 # Host-only state.
+var low_time := false
 var hands: Dictionary = {}
 var discarded_cards: Array = []
 var ready_peers: Array[int] = []
@@ -106,7 +107,6 @@ func _send(peer_id: int, method: StringName, args: Array) -> void:
 		callv(method, args)
 	else:
 		callv("rpc_id", [peer_id, method] + args)
-
 
 func _broadcast(method: StringName, args: Array) -> void:
 	for peer_id in player_ids:
