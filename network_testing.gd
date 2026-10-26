@@ -5,34 +5,81 @@ const MAX_REMOTE_PLAYERS := 1
 
 var _connection_active := false
 
+var _public_ip_request: HTTPRequest
+
 @onready var host_button: Button = %HostButton
 @onready var join_address: LineEdit = %JoinAddress
 @onready var join_button: Button = %JoinButton
 @onready var disconnect_button: Button = %DisconnectButton
 @onready var play_button: Button = %PlayButton
+@onready var hard_mode_button: CheckButton = %HardModeButton
 @onready var status_label: Label = %Status
 @onready var players_label: Label = %Players
 @onready var ip_label: Label = %IP
 
 func get_my_local_ip() -> String:
-	# Loop through all network interfaces (Wi-Fi, Ethernet, Loopback)
+	var fallback_ipv4 := ""
 	for ip in IP.get_local_addresses():
-		# Filter for IPv4 addresses and ignore the local loopback (127.0.0.1)
 		if ip.contains(".") and not ip.begins_with("127."):
-			# Common router subnets: 192.168.x.x, 10.x.x.x, 172.16.x.x
-			if ip.begins_with("192.168.") or ip.begins_with("10.") or ip.begins_with("172."):
+			if fallback_ipv4.is_empty():
+				fallback_ipv4 = ip
+			if ip.begins_with("192.168.") or ip.begins_with("10."):
 				return ip
-				
-	return "No LAN Connection Found"
+			if ip.begins_with("172."):
+				var octets := ip.split(".")
+				if octets.size() == 4 and int(octets[1]) >= 16 and int(octets[1]) <= 31:
+					return ip
+
+	return fallback_ipv4 if not fallback_ipv4.is_empty() else "No network IPv4 found"
 
 func _ready() -> void:
-	ip_label.text = "Your LAN IP: " + get_my_local_ip()
+	ip_label.text = "Your network IPv4: %s\nYour public IPv4: Looking up..." % get_my_local_ip()
+	_public_ip_request = HTTPRequest.new()
+	_public_ip_request.timeout = 10.0
+	_public_ip_request.request_completed.connect(_on_public_ip_request_completed)
+	add_child(_public_ip_request)
+	var request_error := _public_ip_request.request("https://api4.ipify.org")
+	if request_error != OK:
+		ip_label.text = "Your network IPv4: %s\nPublic IPv4 lookup failed: %s" % [
+			get_my_local_ip(),
+			error_string(request_error)
+		]
 	
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_to_server)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
+
+func _on_public_ip_request_completed(
+	result: int,
+	response_code: int,
+	_headers: PackedStringArray,
+	body: PackedByteArray
+) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS:
+		ip_label.text = "Your network IPv4: %s\nPublic IPv4 lookup failed (request result %d)." % [
+			get_my_local_ip(),
+			result
+		]
+		return
+	if response_code != 200:
+		ip_label.text = "Your network IPv4: %s\nPublic IPv4 lookup failed (HTTP %d)." % [
+			get_my_local_ip(),
+			response_code
+		]
+		return
+
+	var public_ip := body.get_string_from_utf8().strip_edges()
+	#if not IP.is_valid_ip_address(public_ip):
+		#ip_label.text = "Your network IPv4: %s\nPublic IPv4 lookup returned an invalid address." % get_my_local_ip()
+		#return
+
+	ip_label.text = "Your network IPv4: %s\nYour public IPv4: %s\nForward UDP port %d for internet play." % [
+		get_my_local_ip(),
+		public_ip,
+		PORT
+	]
 
 func _on_host_pressed() -> void:
 	var peer := ENetMultiplayerPeer.new()
@@ -44,13 +91,16 @@ func _on_host_pressed() -> void:
 	multiplayer.multiplayer_peer = peer
 	_connection_active = true
 	_set_connected_controls(true)
-	_set_status("Hosting on port %d. Give the other player the IP Address." % PORT)
+	_set_status("Hosting on UDP port %d. For internet play, share your public IPv4 and forward UDP %d." % [
+		PORT,
+		PORT
+	])
 	_update_players()
 
 func _on_join_pressed() -> void:
 	var address := join_address.text.strip_edges()
 	if address.is_empty():
-		_set_status("Enter the host's LAN address before joining.", true)
+		_set_status("Enter the host's LAN or public IPv4 address before joining.", true)
 		return
 
 	var peer := ENetMultiplayerPeer.new()
@@ -75,9 +125,12 @@ func _on_play_pressed() -> void:
 		if multiplayer.get_peers().is_empty():
 			_set_status("Wait for another player to join before starting.", true)
 			return
-		_start_card_board.rpc()
+		_start_card_board.rpc(Global.hard_mode)
 	else:
 		_set_status("Wait for the host to start the shared board.")
+
+func _on_hard_mode_toggled(pressed: bool) -> void:
+	Global.hard_mode = pressed
 
 func _open_card_board() -> void:
 	var error := get_tree().change_scene_to_file("res://board.tscn")
@@ -85,7 +138,8 @@ func _open_card_board() -> void:
 		push_error("Could not open the card board: %s" % error_string(error))
 
 @rpc("authority", "call_local", "reliable")
-func _start_card_board() -> void:
+func _start_card_board(hard_mode: bool) -> void:
+	Global.hard_mode = hard_mode
 	_open_card_board()
 
 func _on_peer_connected(peer_id: int) -> void:
@@ -107,7 +161,7 @@ func _on_connected_to_server() -> void:
 
 func _on_connection_failed() -> void:
 	_reset_connection()
-	_set_status("Connection failed. Check the address, port, and local network.", true)
+	_set_status("Connection failed. Check the address, host firewall, UDP port forwarding, and network restrictions.", true)
 
 func _on_server_disconnected() -> void:
 	_reset_connection()
@@ -120,6 +174,9 @@ func _reset_connection() -> void:
 	_update_players()
 
 func _set_connected_controls(connected: bool) -> void:
+	hard_mode_button.visible = connected and multiplayer.is_server()
+	if not connected:
+		hard_mode_button.button_pressed = false
 	host_button.disabled = connected
 	join_button.disabled = connected
 	join_address.editable = not connected

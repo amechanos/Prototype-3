@@ -3,6 +3,7 @@ extends Node
 # Dictionary to store connected players: { peer_id: { "name": "Alice", "score": 0 } }
 var players = {}
 var game_players: Array[Dictionary] = []
+var hard_mode := false
 #var player_scene = preload("res://player.tscn")
 
 # Called on the server when a peer connects

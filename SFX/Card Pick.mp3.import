@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://cotoys1arigcd"
+path="res://.godot/imported/Card Pick.mp3-d9c4754a52ef3e630894e547ca5e0f4e.mp3str"
+
+[deps]
+
+source_file="res://SFX/Card Pick.mp3"
+dest_files=["res://.godot/imported/Card Pick.mp3-d9c4754a52ef3e630894e547ca5e0f4e.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

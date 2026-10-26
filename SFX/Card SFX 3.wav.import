@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://cnwvg66gar20j"
+path="res://.godot/imported/Card SFX 3.wav-faa49a6a8e0c837ef7d01f8b68dc88b5.sample"
+
+[deps]
+
+source_file="res://SFX/Card SFX 3.wav"
+dest_files=["res://.godot/imported/Card SFX 3.wav-faa49a6a8e0c837ef7d01f8b68dc88b5.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2
