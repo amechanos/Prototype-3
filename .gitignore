@@ -19,3 +19,5 @@ mono_crash.*.json
 .DS_Store
 Thumbs.db
 Desktop.ini
+*.tscn
+*.gd

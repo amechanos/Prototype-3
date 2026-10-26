@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://enurh8oy78vn"
+path="res://.godot/imported/Timer Ticks.mp3-4e38488d917979b214ba2b50dbcb6ba3.mp3str"
+
+[deps]
+
+source_file="res://SFX/Timer Ticks.mp3"
+dest_files=["res://.godot/imported/Timer Ticks.mp3-4e38488d917979b214ba2b50dbcb6ba3.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4
