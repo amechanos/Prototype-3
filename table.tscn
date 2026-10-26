@@ -1,9 +1,9 @@
-[gd_scene format=3 uid="uid://4fhnhk28s748"]
+[gd_scene load_steps=3 format=3 uid="uid://4fhnhk28s748"]
 
 [ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://table.gd" id="1_jd0nb"]
 [ext_resource type="Texture2D" uid="uid://c5c72uh42q8xd" path="res://Assets/bg.png" id="2_v5i0k"]
 
-[node name="table" type="Control" unique_id=37574144]
+[node name="table" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +12,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_jd0nb")
 
-[node name="playerCards" type="MarginContainer" parent="." unique_id=139255729]
+[node name="playerCards" type="MarginContainer" parent="."]
 layout_mode = 0
 offset_left = 56.0
 offset_top = 776.0
@@ -23,25 +23,25 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="playerCards" unique_id=1510193541]
+[node name="HandLayout" type="VBoxContainer" parent="playerCards"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="HandHeading" type="Label" parent="playerCards/HandLayout" unique_id=1879243525]
+[node name="HandHeading" type="Label" parent="playerCards/HandLayout"]
 layout_mode = 2
 text = "Your hand. Click cards to select."
 
-[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout" unique_id=1014847750]
+[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer" unique_id=2119284915]
+[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="opponentCards" type="MarginContainer" parent="." unique_id=1546835422]
+[node name="opponentCards" type="MarginContainer" parent="."]
 layout_mode = 0
 offset_left = 48.0
 offset_top = -40.0
@@ -52,32 +52,32 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="opponentCards" unique_id=35790968]
+[node name="HandLayout" type="VBoxContainer" parent="opponentCards"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ScrollContainer" type="ScrollContainer" parent="opponentCards/HandLayout" unique_id=1525528362]
+[node name="ScrollContainer" type="ScrollContainer" parent="opponentCards/HandLayout"]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer" unique_id=595807043]
+[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HandHeading" type="Label" parent="opponentCards/HandLayout" unique_id=64487477]
+[node name="HandHeading" type="Label" parent="opponentCards/HandLayout"]
 layout_mode = 2
 text = "Your Opponent"
 
-[node name="PlayerInterface" type="Control" parent="." unique_id=2117873282]
+[node name="PlayerInterface" type="Control" parent="."]
 anchors_preset = 0
 offset_left = 688.0
 offset_top = 704.0
 offset_right = 688.0
 offset_bottom = 704.0
 
-[node name="Submit" type="Button" parent="PlayerInterface" unique_id=991628963]
+[node name="Submit" type="Button" parent="PlayerInterface"]
 layout_mode = 0
 offset_left = 912.0
 offset_top = 64.0
@@ -85,7 +85,7 @@ offset_right = 1104.0
 offset_bottom = 128.0
 text = "Submit"
 
-[node name="Pickup" type="Button" parent="PlayerInterface" unique_id=-1294967295]
+[node name="Pickup" type="Button" parent="PlayerInterface"]
 layout_mode = 0
 offset_left = -624.0
 offset_right = -440.0
@@ -94,7 +94,7 @@ tooltip_text = "Pick up to 3 random number cards from the discard pile once per 
 disabled = true
 text = "Pickup"
 
-[node name="EQDisplay" type="Label" parent="PlayerInterface" unique_id=1731030582]
+[node name="EQDisplay" type="Label" parent="PlayerInterface"]
 layout_mode = 0
 offset_left = -354.0
 offset_top = 64.0
@@ -104,7 +104,7 @@ theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="UI" type="Control" parent="." unique_id=2057037047]
+[node name="UI" type="Control" parent="."]
 anchors_preset = 0
 offset_left = 384.0
 offset_top = 392.0
@@ -112,7 +112,7 @@ offset_right = 1536.0
 offset_bottom = 632.0
 mouse_filter = 2
 
-[node name="Timer" type="Label" parent="UI" unique_id=770616339]
+[node name="Timer" type="Label" parent="UI"]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
 offset_left = 480.0
@@ -125,7 +125,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Round" type="Label" parent="UI" unique_id=1724417258]
+[node name="Round" type="Label" parent="UI"]
 layout_mode = 0
 offset_left = 256.0
 offset_top = -8.0
@@ -137,7 +137,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Info" type="Label" parent="UI" unique_id=1172554653]
+[node name="Info" type="Label" parent="UI"]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
 offset_top = 264.0
@@ -149,7 +149,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="TargetNumber" type="Label" parent="UI" unique_id=1310817322]
+[node name="TargetNumber" type="Label" parent="UI"]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 0
 offset_left = 512.0
@@ -162,7 +162,7 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="TargetText" type="Label" parent="UI" unique_id=1040934505]
+[node name="TargetText" type="Label" parent="UI"]
 custom_minimum_size = Vector2(80, 40)
 layout_mode = 0
 offset_left = 456.0
@@ -175,7 +175,7 @@ horizontal_alignment = 1
 vertical_alignment = 2
 autowrap_mode = 3
 
-[node name="BG" type="TextureRect" parent="." unique_id=1431901454]
+[node name="BG" type="TextureRect" parent="."]
 show_behind_parent = true
 layout_mode = 0
 offset_right = 1920.0

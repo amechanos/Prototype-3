@@ -447,3 +447,4 @@ func _get_card_name_by_id(card_id: int) -> String:
 	if card_name.is_valid_int():
 		return card_name
 	return card_name.capitalize()
+	

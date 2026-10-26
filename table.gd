@@ -17,10 +17,14 @@ const PILL_COLOR_BG := Color(0.1, 0.1, 0.1, 0.85)
 const PILL_COLOR_NEUTRAL := Color(0.35, 0.35, 0.4, 0.9)
 const PILL_COLOR_RAISE := Color(0.25, 0.6, 0.35, 0.95)
 const PILL_COLOR_LOWER := Color(0.7, 0.28, 0.28, 0.95)
+const LOW_TIME := 15.0
+const COLOR_LOW_TIME := Color(0.9, 0.2, 0.2)
+const DRAW_SCENE := "res://board.tscn" 
 
 const SFX_SHUFFLE := preload("res://SFX/Insane shuffle.wav")
 const SFX_DEAL := preload("res://SFX/Card place down.wav")
 const SFX_PICK := preload("res://SFX/Card Pick.mp3")
+const SFX_LOW_TIME := preload("res://SFX/Card Pick.mp3") # placeholder
 
 @onready var equation_label: Label = $PlayerInterface/EQDisplay
 @onready var submit_button: Button = $PlayerInterface/Submit
@@ -55,6 +59,7 @@ var round_number := 0
 var base_target := 21
 var game_finished := false
 var next_uid := 0
+var round_wins: Dictionary = {}
 
 # Local state.
 var my_hand: Array = []
@@ -70,8 +75,12 @@ var redraw_pending := false
 var round_received := false
 var discard_pile_count := 0
 var time_left := -1.0
+var my_wins := 0
+var opponent_wins := 0
+var restart_button: Button
 
 func _ready() -> void:
+	_tidy_ui()
 	playerHeading.hide()
 	opponentHeading.hide()
 	_update_pickup_button()
@@ -93,10 +102,24 @@ func _process(delta: float) -> void:
 		return
 	time_left = maxf(0.0, time_left - delta)
 	timer_label.text = "Time left: %.1f" % time_left
+	_update_timer_warning()
 	if time_left == 0.0:
 		time_left = -1.0
 		if not has_submitted:
 			_submit_current_hand(true)
+
+func _update_timer_warning() -> void:
+	if time_left > LOW_TIME:
+		return
+	timer_label.add_theme_color_override("font_color", COLOR_LOW_TIME)
+	if not low_time:
+		low_time = true
+		_play_sfx(SFX_LOW_TIME)
+
+
+func _reset_timer_warning() -> void:
+	low_time = false
+	timer_label.remove_theme_color_override("font_color")
 
 func _sender() -> int:
 	var sender := multiplayer.get_remote_sender_id()
@@ -180,8 +203,8 @@ func _host_record_submission(peer_id: int, picks: Array) -> void:
 	if submissions.size() == player_ids.size():
 		_host_resolve()
 	elif submissions.size() == 1:
-		_broadcast(&"_start_countdown", [Rules.ROUND_SECONDS])
-		_host_deadline(round_number, Rules.ROUND_SECONDS)
+		_broadcast(&"_start_countdown", [LOW_TIME])
+		_host_deadline(round_number, LOW_TIME)
 
 func _build_played_cards(peer_id: int, picks: Array) -> Array:
 	var played: Array = []
@@ -227,6 +250,12 @@ func _host_resolve() -> void:
 	var result := Rules.resolve(base_target, cards_a, cards_b)
 	result["peers"] = [peer_a, peer_b]
 	result["cards"] = [cards_a, cards_b]
+	var round_winner := int(result["winner"])
+	if round_winner != -1:
+		var winner_peer := int(result["peers"][round_winner])
+		if winner_peer != -1:
+			round_wins[winner_peer] = int(round_wins.get(winner_peer, 0)) + 1
+	result["wins"] = round_wins.duplicate()
 
 	var finished_peer := -1
 	for index in range(player_ids.size()):
@@ -288,6 +317,7 @@ func _receive_round(
 	submit_button.disabled = game_finished
 	time_left = Rules.ROUND_LIMIT_SECONDS
 	timer_label.text = ""
+	_reset_timer_warning()
 	opponent_heading.text = ""
 	opponent_played_cards = []
 	opponent_count = 0
@@ -298,7 +328,7 @@ func _receive_round(
 	_render_hand()
 	_render_opponent()
 	_refresh_selection()
-	round_counter.text = "Round %d" % round_no
+	round_counter.text = "Round %d  |  Wins: You %d - %d Opponent" % [round_no, my_wins, opponent_wins]
 	if round_no == 1:
 		_play_deal_animation()
 
@@ -392,6 +422,7 @@ func _start_countdown(seconds: float) -> void:
 	if has_submitted:
 		return
 	time_left = seconds if time_left < 0.0 else minf(seconds, time_left)
+	information.text = "Your opponent has submitted!"
 
 @rpc("authority", "call_remote", "reliable")
 func _show_result(result: Dictionary) -> void:
@@ -408,31 +439,43 @@ func _show_result(result: Dictionary) -> void:
 	var bust: Array = result["bust"]
 	target_num_label.text = str(int(result["target"]))
 
+	var winner := int(result["winner"])
+	var discard_mine: Array = result["discard"][mine]
+	var discard_other: Array = result["discard"][other]
+	var wins: Dictionary = result.get("wins", {})
+	my_wins = int(wins.get(my_id, 0))
+	opponent_wins = int(wins.get(int(peers[other]), 0))
+	var other_name := str(names.get(int(peers[other]), "Opponent"))
+
 	var lines: Array[String] = []
 	if int(result["target"]) != target_number:
 		lines.append("Jacks moved the target to %d." % int(result["target"]))
 	if bool(result["swapped"]):
 		lines.append("A Joker swapped the hands!")
-	lines.append("You: %s%s" % [
+
+	var score_line := "You: %s%s" % [
 		Rules.format_number(float(score[mine])),
 		" (bust)" if bool(bust[mine]) else "",
-	])
+	]
 	if int(peers[other]) != -1:
-		lines.append("%s: %s%s" % [
-			names.get(int(peers[other]), "Opponent"),
+		score_line += "   |   %s: %s%s" % [
+			other_name,
 			Rules.format_number(float(score[other])),
 			" (bust)" if bool(bust[other]) else "",
-		])
-	var winner := int(result["winner"])
-	var discard_mine: Array = result["discard"][mine]
-	var discard_other: Array = result["discard"][other]
+		]
+	lines.append(score_line)
+
+	var outcome := ""
 	if winner == -1:
-		lines.append("Draw - nobody discards the cards they played.")
+		outcome = "Draw - nobody discards."
 	elif winner == mine:
-		lines.append("You win the round!")
+		outcome = "You win the round!"
 	else:
-		lines.append("You lose the round and keep your cards.")
-	lines.append("You discard %d card(s)." % discard_mine.size())
+		outcome = "You lose the round and keep your cards."
+	if discard_mine.size() > 0:
+		outcome += "  You discard %d card(s)." % discard_mine.size()
+	lines.append(outcome)
+	lines.append("Rounds won: You %d - %d %s" % [my_wins, opponent_wins, other_name])
 	information.text = "\n".join(lines)
 
 	my_hand = my_hand.filter(
@@ -456,15 +499,15 @@ func _game_over(winner_peer: int, note: String) -> void:
 	selected_cards.clear()
 	_render_hand()
 	_refresh_selection()
-	_update_pickup_button()
-	var message := note
 	if winner_peer == my_id:
-		message += " You win - you disposed of all your cards!" if note == "" else " You win!"
+		round_counter.text = "You won!"
 	else:
-		message = "%s disposed of all their cards. You lose." % names.get(winner_peer, "Your opponent")
-	round_counter.text = message.strip_edges()
+		round_counter.text = "You lost."
+	if note != "":
+		information.text = note
 	submit_button.disabled = true
 	_update_pickup_button()
+	_show_restart_button()
 
 # ----------------------------------------------------------------- client: UI
 func _render_hand() -> void:
@@ -763,3 +806,78 @@ func _lock_hand() -> void:
 			_set_param_control_locked(card_button.get_meta("param_control"), true)
 	submit_button.disabled = true
 	_update_pickup_button()
+	
+func _show_restart_button() -> void:
+	if restart_button == null:
+		restart_button = Button.new()
+		restart_button.text = "Play again"
+		restart_button.pressed.connect(_on_restart_pressed)
+		add_child(restart_button)
+		restart_button.size = Vector2(200, 48)
+		restart_button.position = (get_viewport_rect().size - restart_button.size) / 2.0
+	restart_button.disabled = false
+	restart_button.show()
+
+
+func _on_restart_pressed() -> void:
+	restart_button.disabled = true
+	_send(1, &"_host_restart", [])
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _host_restart() -> void:
+	if not multiplayer.is_server() or not game_finished:
+		return
+	_broadcast(&"_return_to_board", [])
+
+
+@rpc("authority", "call_remote", "reliable")
+func _return_to_board() -> void:
+	var error := get_tree().change_scene_to_file(DRAW_SCENE)
+	if error != OK:
+		push_error("Could not open the draw scene: %s" % error_string(error))
+		
+func _tidy_ui() -> void:
+	var box := VBoxContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_constant_override("separation", 8)
+	add_child(box)
+	box.anchor_left = 0.5
+	box.anchor_right = 0.5
+	box.anchor_top = 0.5
+	box.anchor_bottom = 0.5
+	box.offset_left = -450.0
+	box.offset_right = 450.0
+	box.offset_top = -300.0
+	box.offset_bottom = -300.0
+	box.offset_bottom = -270.0
+	box.grow_vertical = Control.GROW_DIRECTION_END
+
+	# Find the static "Target Number" title label so it joins the column.
+	var target_title: Label = null
+	for node in $UI.find_children("*", "Label", true, false):
+		var label := node as Label
+		if label != target_num_label and label.text.strip_edges() == "Target Number":
+			target_title = label
+
+	var ordered: Array[Label] = [round_counter, timer_label]
+	if target_title != null:
+		ordered.append(target_title)
+	ordered.append(target_num_label)
+	ordered.append(information)
+
+	for label in ordered:
+		label.reparent(box)
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if label != information:
+			label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	information.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	round_counter.add_theme_font_size_override("font_size", 32)
+	timer_label.add_theme_font_size_override("font_size", 44)
+	timer_label.custom_minimum_size = Vector2(0, 56)
+	if target_title != null:
+		target_title.add_theme_font_size_override("font_size", 28)
+	target_num_label.add_theme_font_size_override("font_size", 96)
+	information.add_theme_font_size_override("font_size", 26)
