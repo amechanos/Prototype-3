@@ -12,6 +12,7 @@ const TARGET_WEIGHTS := {
 const KING_MIN := 1
 const KING_MAX := 10
 const JACK_DELTA := 3
+const QUEEN_VOID_COUNT := 2
 const ROUND_SECONDS := 10.0
 const ROUND_LIMIT_SECONDS := 90.0
 const OPERATORS: Array[String] = ["minus", "multiplication", "division"]
@@ -121,6 +122,42 @@ static func evaluate(cards: Array) -> Dictionary:
 	result["value"] = snappedf(total, 0.0001)
 	result["text"] = " ".join(parts)
 	return result
+	
+static func has_queen(cards: Array) -> bool:
+	return _count_named(cards, "queen") > 0
+
+
+# With a Queen in play, the Queen and the last two number cards stop counting.
+# A removed number also takes the operator in front of it (or the one after it,
+# if it was the first card) so the equation stays valid.
+static func void_for_queen(cards: Array) -> Array:
+	var voided: Array[int] = []
+	var numbers_left := QUEEN_VOID_COUNT
+	for index in range(cards.size() - 1, -1, -1):
+		var card_name := str((cards[index] as Dictionary).get("name", ""))
+		if card_name == "queen":
+			voided.append(index)
+		elif numbers_left > 0 and card_name.is_valid_int():
+			voided.append(index)
+			numbers_left -= 1
+
+	var removed := {}
+	for index in voided:
+		removed[index] = true
+		if index > 0 and is_operator(str((cards[index - 1] as Dictionary).get("name", ""))):
+			removed[index - 1] = true
+		elif index == 0 and cards.size() > 1 and is_operator(str((cards[1] as Dictionary).get("name", ""))):
+			removed[1] = true
+
+	var kept: Array = []
+	for index in range(cards.size()):
+		if not removed.has(index):
+			kept.append(cards[index])
+	while not kept.is_empty() and is_operator(str((kept[0] as Dictionary).get("name", ""))):
+		kept.pop_front()
+	while not kept.is_empty() and is_operator(str((kept[kept.size() - 1] as Dictionary).get("name", ""))):
+		kept.pop_back()
+	return kept
 
 static func format_number(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):
@@ -143,34 +180,24 @@ static func _count_named(cards: Array, card_name: String) -> int:
 			count += 1
 	return count
 
-# Queens and Jokers are always discarded after a round. The winner discards the
-# rest of the hand they played; each opposing Queen spares 50% of that (rounded
-# down), so two Queens cancel the discard entirely. Face/Joker cards are spared
-# first, then operators, then numbers.
-static func _discard_uids(cards: Array, is_winner: bool, opponent_queens: int) -> Array[int]:
+
+# Queens and Jokers are always discarded after a round. The winner also
+# discards the rest of the hand they played.
+static func _discard_uids(cards: Array, is_winner: bool) -> Array[int]:
 	var discards: Array[int] = []
-	var discardable: Array[Dictionary] = []
 	for card_variant in cards:
 		var card: Dictionary = card_variant
 		var card_name := str(card.get("name", ""))
-		if card_name == "queen" or card_name == "joker":
+		if is_winner or card_name == "queen" or card_name == "joker":
 			discards.append(int(card["uid"]))
-		elif is_winner:
-			discardable.append(card)
-
-	var spared := mini(discardable.size(), discardable.size() * opponent_queens / 2)
-	discardable.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
-		return discard_priority(str(a["name"])) < discard_priority(str(b["name"]))
-	)
-	for index in range(spared, discardable.size()):
-		discards.append(int(discardable[index]["uid"]))
 	return discards
 
 # Returns winner as 0 (player A), 1 (player B) or -1 (draw).
 static func resolve(base_target: int, cards_a: Array, cards_b: Array) -> Dictionary:
 	var target := adjusted_target(base_target, cards_a, cards_b)
-	var eval_a := evaluate(cards_a)
-	var eval_b := evaluate(cards_b)
+	var queen_active := has_queen(cards_a) or has_queen(cards_b)
+	var eval_a := evaluate(void_for_queen(cards_a) if queen_active else cards_a)
+	var eval_b := evaluate(void_for_queen(cards_b) if queen_active else cards_b)
 	var score_a := float(eval_a["value"]) if bool(eval_a["valid"]) else 0.0
 	var score_b := float(eval_b["value"]) if bool(eval_b["valid"]) else 0.0
 	var used_a := cards_a.size()
@@ -204,8 +231,9 @@ static func resolve(base_target: int, cards_a: Array, cards_b: Array) -> Diction
 		"bust": [bust_a, bust_b],
 		"used": [used_a, used_b],
 		"swapped": swapped,
+		"queen_active": queen_active,
 		"discard": [
-			_discard_uids(cards_a, winner == 0, _count_named(cards_b, "queen")),
-			_discard_uids(cards_b, winner == 1, _count_named(cards_a, "queen")),
+			_discard_uids(cards_a, winner == 0),
+			_discard_uids(cards_b, winner == 1),
 		],
 	}

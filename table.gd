@@ -452,6 +452,8 @@ func _show_result(result: Dictionary) -> void:
 		lines.append("Jacks moved the target to %d." % int(result["target"]))
 	if bool(result["swapped"]):
 		lines.append("A Joker swapped the hands!")
+	if bool(result.get("queen_active", false)):
+		lines.append("Queen played: the last two numbers were voided for both players!")
 
 	var score_line := "You: %s%s" % [
 		Rules.format_number(float(score[mine])),
@@ -475,7 +477,6 @@ func _show_result(result: Dictionary) -> void:
 	if discard_mine.size() > 0:
 		outcome += "  You discard %d card(s)." % discard_mine.size()
 	lines.append(outcome)
-	lines.append("Rounds won: You %d - %d %s" % [my_wins, opponent_wins, other_name])
 	information.text = "\n".join(lines)
 
 	my_hand = my_hand.filter(
@@ -773,7 +774,10 @@ func _equation_text() -> String:
 		previous_was_operand = is_operand
 	var text := " ".join(parts)
 	if not Global.hard_mode:
-		var evaluation := Rules.evaluate(_played_cards())
+		var preview_cards := _played_cards()
+		if Rules.has_queen(preview_cards):
+			preview_cards = Rules.void_for_queen(preview_cards)
+		var evaluation := Rules.evaluate(preview_cards)
 		if bool(evaluation["valid"]):
 			text += " = %s" % Rules.format_number(float(evaluation["value"]))
 	return text
