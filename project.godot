@@ -17,7 +17,6 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="blackjack"
 run/main_scene="res://network_testing.tscn"
 config/features=PackedStringArray("4.4", "GL Compatibility")
-config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
 [autoload]
@@ -26,6 +25,8 @@ Global="*uid://gm6sderr5qrs"
 
 [display]
 
+window/size/viewport_width=1920
+window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
