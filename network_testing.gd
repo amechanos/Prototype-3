@@ -3,6 +3,18 @@ extends Control
 const PORT := 7000
 const MAX_REMOTE_PLAYERS := 1
 
+const FONT_PATH := "res://Assets/JimNightshade-Regular.ttf" # 
+const BODY_FONT_PATH := "res://Assets/Cinzel-VariableFont_wght.ttf" # 
+const GAME_TITLE := "white jack" # 
+const COL_BG := Color(0.03, 0.0, 0.02)
+const COL_PANEL := Color(0.08, 0.015, 0.025, 0.94)
+const COL_BLOOD := Color(0.5, 0.04, 0.06)
+const COL_EMBER := Color(1.0, 0.4, 0.12)
+const COL_BONE := Color(0.93, 0.86, 0.74)
+const COL_DIM := Color(0.55, 0.45, 0.42)
+
+var _panel_style: StyleBoxFlat
+
 var _connection_active := false
 
 var _public_ip_request: HTTPRequest
@@ -33,6 +45,7 @@ func get_my_local_ip() -> String:
 	return fallback_ipv4 if not fallback_ipv4.is_empty() else "No network IPv4 found"
 
 func _ready() -> void:
+	_apply_devil_look()
 	ip_label.text = "Your network IPv4: %s\nYour public IPv4: Looking up..." % get_my_local_ip()
 	_public_ip_request = HTTPRequest.new()
 	_public_ip_request.timeout = 10.0
@@ -187,7 +200,7 @@ func _set_connected_controls(connected: bool) -> void:
 
 func _set_status(message: String, is_error: bool = false) -> void:
 	status_label.text = message
-	var color := Color(1.0, 0.45, 0.4) if is_error else Color(0.82, 0.88, 0.96)
+	var color := Color(1.0, 0.3, 0.25) if is_error else COL_BONE
 	status_label.add_theme_color_override("font_color", color)
 
 func _update_players() -> void:
@@ -204,3 +217,217 @@ func _update_players() -> void:
 		remote_ids.size() + 1,
 		"\n".join(player_names)
 	]
+	
+func _box(bg: Color, border: Color, border_width := 2, radius := 4, margin := 10) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = bg
+	box.border_color = border
+	box.set_border_width_all(border_width)
+	box.set_corner_radius_all(radius)
+	box.set_content_margin_all(margin)
+	return box
+
+
+func _build_theme() -> Theme:
+	_panel_style = _box(COL_PANEL, COL_BLOOD, 3, 6, 0)
+	_panel_style.shadow_color = Color(0.9, 0.15, 0.05, 0.5)
+	_panel_style.shadow_size = 16
+
+	var t := Theme.new()
+	if ResourceLoader.exists(FONT_PATH):
+		var font := load(FONT_PATH) as Font
+		if font != null:
+			t.default_font = font
+	t.default_font_size = 24
+
+	t.set_color("font_color", "Label", COL_BONE)
+	t.set_stylebox("panel", "PanelContainer", _panel_style)
+
+	var line := StyleBoxLine.new()
+	line.color = COL_BLOOD
+	line.thickness = 2
+	t.set_stylebox("separator", "HSeparator", line)
+	t.set_constant("separation", "HSeparator", 14)
+
+	t.set_font_size("font_size", "Button", 28)
+	t.set_color("font_color", "Button", COL_BONE)
+	t.set_color("font_hover_color", "Button", Color.WHITE)
+	t.set_color("font_pressed_color", "Button", COL_EMBER)
+	t.set_color("font_focus_color", "Button", COL_BONE)
+	t.set_color("font_disabled_color", "Button", COL_DIM)
+	t.set_stylebox("normal", "Button", _box(Color(0.16, 0.03, 0.04), COL_BLOOD))
+	t.set_stylebox("hover", "Button", _box(Color(0.3, 0.05, 0.05), COL_EMBER))
+	t.set_stylebox("pressed", "Button", _box(Color(0.08, 0.0, 0.0), COL_EMBER))
+	t.set_stylebox("disabled", "Button", _box(Color(0.08, 0.04, 0.04, 0.8), Color(0.22, 0.12, 0.12)))
+	t.set_stylebox("focus", "Button", StyleBoxEmpty.new())
+
+	for state in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		t.set_stylebox(state, "CheckButton", StyleBoxEmpty.new())
+
+	t.set_font_size("font_size", "LineEdit", 24)
+	t.set_color("font_color", "LineEdit", COL_BONE)
+	t.set_color("font_placeholder_color", "LineEdit", COL_DIM)
+	t.set_color("caret_color", "LineEdit", COL_EMBER)
+	t.set_color("selection_color", "LineEdit", COL_BLOOD)
+	t.set_stylebox("normal", "LineEdit", _box(Color(0.04, 0.01, 0.01), COL_BLOOD))
+	t.set_stylebox("focus", "LineEdit", _box(Color(0.06, 0.01, 0.01), COL_EMBER))
+	return t
+
+
+func _apply_devil_look() -> void:
+	theme = _build_theme()
+	_add_backdrop()
+	_add_embers()
+	_add_title()
+	_style_text()
+	_apply_body_font()
+
+	var breathe := create_tween().set_loops()
+	breathe.tween_property(_panel_style, "shadow_size", 30, 1.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	breathe.tween_property(_panel_style, "shadow_size", 12, 1.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _add_backdrop() -> void:
+	var base := ColorRect.new()
+	base.color = COL_BG
+	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(base)
+	base.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(base, 0)
+
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(0.4, 0.04, 0.05, 0.6))
+	gradient.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	texture.width = 512
+	texture.height = 512
+
+	var glow := TextureRect.new()
+	glow.texture = texture
+	glow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	glow.stretch_mode = TextureRect.STRETCH_SCALE
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(glow)
+	glow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(glow, 1)
+
+	var flicker := glow.create_tween().set_loops()
+	flicker.tween_property(glow, "modulate:a", 0.55, 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	flicker.tween_property(glow, "modulate:a", 1.0, 2.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _add_embers() -> void:
+	var view_size := get_viewport_rect().size
+	var embers := CPUParticles2D.new()
+	embers.amount = 70
+	embers.lifetime = 7.0
+	embers.preprocess = 7.0
+	embers.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	embers.emission_rect_extents = Vector2(view_size.x / 2.0, 10.0)
+	embers.position = Vector2(view_size.x / 2.0, view_size.y + 10.0)
+	embers.direction = Vector2(0, -1)
+	embers.spread = 25.0
+	embers.gravity = Vector2.ZERO
+	embers.initial_velocity_min = 30.0
+	embers.initial_velocity_max = 90.0
+	embers.scale_amount_min = 1.5
+	embers.scale_amount_max = 4.0
+
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1.0, 0.6, 0.2, 0.0))
+	fade.set_color(1, Color(0.8, 0.1, 0.05, 0.0))
+	fade.add_point(0.2, Color(1.0, 0.5, 0.15, 0.9))
+	embers.color_ramp = fade
+
+	add_child(embers)
+	move_child(embers, 2)
+
+
+func _add_title() -> void:
+	var title := Label.new()
+	title.name = "GameTitle"
+	title.text = GAME_TITLE
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.add_theme_font_size_override("font_size", 76)
+	title.add_theme_color_override("font_color", COL_EMBER)
+	title.add_theme_color_override("font_outline_color", Color(0.15, 0.0, 0.0))
+	title.add_theme_constant_override("outline_size", 8)
+	add_child(title)
+	title.anchor_right = 1.0
+	title.offset_top = 10.0
+	title.offset_bottom = 110.0
+
+	var pulse := title.create_tween().set_loops()
+	pulse.tween_property(title, "modulate", Color(1.0, 0.7, 0.6), 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	pulse.tween_property(title, "modulate", Color.WHITE, 1.4).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+func _style_text() -> void:
+	var tutorial_title := find_child("Title", true, false) as Label
+	if tutorial_title != null:
+		tutorial_title.add_theme_font_size_override("font_size", 44)
+		tutorial_title.add_theme_color_override("font_color", COL_EMBER)
+
+	var heading := find_child("Heading", true, false) as Label
+	if heading != null:
+		heading.add_theme_font_size_override("font_size", 34)
+		heading.add_theme_color_override("font_color", Color(0.9, 0.25, 0.2))
+
+	var body := find_child("Body", true, false) as Label
+	if body != null:
+		body.add_theme_font_size_override("font_size", 24)
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var page := find_child("Page", true, false) as Label
+	if page != null:
+		page.add_theme_color_override("font_color", COL_DIM)
+		page.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+	players_label.add_theme_font_size_override("font_size", 28)
+	players_label.add_theme_color_override("font_color", COL_EMBER)
+	players_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ip_label.add_theme_font_size_override("font_size", 18)
+	ip_label.add_theme_color_override("font_color", COL_DIM)
+	status_label.add_theme_font_size_override("font_size", 22)
+
+	play_button.add_theme_font_size_override("font_size", 36)
+	play_button.add_theme_stylebox_override("normal", _box(COL_BLOOD, COL_EMBER, 2, 4, 14))
+	play_button.add_theme_stylebox_override("hover", _box(Color(0.75, 0.08, 0.06), Color(1.0, 0.7, 0.3), 2, 4, 14))
+
+func _get_body_font() -> Font:
+	if ResourceLoader.exists(BODY_FONT_PATH):
+		var font := load(BODY_FONT_PATH) as Font
+		if font != null:
+			return font
+	var fallback := SystemFont.new()
+	fallback.font_names = PackedStringArray(["Georgia", "Palatino Linotype", "Book Antiqua", "Times New Roman", "serif"])
+	return fallback
+
+
+func _apply_body_font() -> void:
+	var body_font := _get_body_font()
+
+	var body := find_child("Body", true, false) as Label
+	if body != null:
+		body.add_theme_font_override("font", body_font)
+		body.add_theme_font_size_override("font_size", 22)
+
+	var page := find_child("Page", true, false) as Label
+	if page != null:
+		page.add_theme_font_override("font", body_font)
+		page.add_theme_font_size_override("font_size", 20)
+
+	ip_label.add_theme_font_override("font", body_font)
+	ip_label.add_theme_font_size_override("font_size", 17)
+
+	status_label.add_theme_font_override("font", body_font)
+	status_label.add_theme_font_size_override("font_size", 20)
+
+	join_address.add_theme_font_override("font", body_font)
+	join_address.add_theme_font_size_override("font_size", 22)
