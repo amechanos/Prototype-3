@@ -12,14 +12,21 @@ const DEAL_SPREAD := 0.9
 const DEAL_STACK_SEPARATION := -96
 const HAND_SEPARATION := 8
 const SELECT_LIFT := 12.0
-const CARD_SIZE := Vector2(100, 136)
+const CARD_SIZE := Vector2(112, 152)
+const OPPONENT_CARD_SIZE := Vector2(84, 114)
+const EDGE_MARGIN := 24.0
 const PILL_COLOR_BG := Color(0.1, 0.1, 0.1, 0.85)
 const PILL_COLOR_NEUTRAL := Color(0.35, 0.35, 0.4, 0.9)
 const PILL_COLOR_RAISE := Color(0.25, 0.6, 0.35, 0.95)
 const PILL_COLOR_LOWER := Color(0.7, 0.28, 0.28, 0.95)
 const LOW_TIME := 15.0
 const COLOR_LOW_TIME := Color(0.9, 0.2, 0.2)
-const DRAW_SCENE := "res://board.tscn" 
+const DRAW_SCENE := "res://board.tscn"
+const RING_CALM := Color(0.6, 0.08, 0.1, 0.8)
+const RING_HOT := Color(1.0, 0.22, 0.08, 1.0)
+const PULSE_SLOW := 1.1 # pulse speed when calm (radians per second)
+const PULSE_FAST := 3.0 # pulse speed at full heat
+const HEAT_OVERLAY_MAX := 0.55 # strongest the red screen-edge glow gets
 
 const SFX_SHUFFLE := preload("res://SFX/Insane shuffle.wav")
 const SFX_DEAL := preload("res://SFX/Card place down.wav")
@@ -79,8 +86,27 @@ var my_wins := 0
 var opponent_wins := 0
 var restart_button: Button
 
+# Table look state.
+var heat := 0.0
+var _clock := 0.0
+var _ring_spin := 0.0
+var _pulse_phase := 0.0
+var _pulse := 0.0
+var _flash := 0.0
+var _flash_color := Color.WHITE
+var _dealing := false
+var _ring: Control
+var _sparks: CPUParticles2D
+var _heat_overlay: TextureRect
+
+
 func _ready() -> void:
+	_build_table_look()
 	_tidy_ui()
+	_prepare_hand_rows()
+	_style_table_text()
+	_add_heat_overlay()
+	get_viewport().size_changed.connect(_on_viewport_resized)
 	playerHeading.hide()
 	opponentHeading.hide()
 	_update_pickup_button()
@@ -92,12 +118,15 @@ func _ready() -> void:
 		names[peer_id] = str(player_data.get("name", "Player %d" % peer_id))
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
+	_fit_layout()
 	if multiplayer.is_server():
 		_host_mark_ready()
 	else:
 		_send(1, &"_host_mark_ready", [])
 
+
 func _process(delta: float) -> void:
+	_animate_table(delta)
 	if time_left < 0.0:
 		return
 	time_left = maxf(0.0, time_left - delta)
@@ -107,6 +136,7 @@ func _process(delta: float) -> void:
 		time_left = -1.0
 		if not has_submitted:
 			_submit_current_hand(true)
+
 
 func _update_timer_warning() -> void:
 	if time_left > LOW_TIME:
@@ -121,15 +151,18 @@ func _reset_timer_warning() -> void:
 	low_time = false
 	timer_label.remove_theme_color_override("font_color")
 
+
 func _sender() -> int:
 	var sender := multiplayer.get_remote_sender_id()
 	return sender if sender != 0 else multiplayer.get_unique_id()
+
 
 func _send(peer_id: int, method: StringName, args: Array) -> void:
 	if peer_id == multiplayer.get_unique_id():
 		callv(method, args)
 	else:
 		callv("rpc_id", [peer_id, method] + args)
+
 
 func _broadcast(method: StringName, args: Array) -> void:
 	for peer_id in player_ids:
@@ -148,19 +181,29 @@ func _host_mark_ready() -> void:
 	if ready_peers.size() == player_ids.size():
 		_host_begin()
 
+
 func _host_begin() -> void:
+	var copy_counts := {}
 	for player_data in Global.game_players:
 		var hand: Array = []
 		for card_variant in player_data.get("cards", []):
 			var card: Dictionary = card_variant
+			var card_name := str(card.get("name", "")).to_lower()
+			var suit := str(card.get("suit", ""))
+			if suit == "":
+				var copy_index := int(copy_counts.get(card_name, 0))
+				copy_counts[card_name] = copy_index + 1
+				suit = DevilStyle.SUITS[copy_index % DevilStyle.SUITS.size()]
 			hand.append({
 				"uid": next_uid,
-				"name": str(card.get("name", "")).to_lower(),
+				"name": card_name,
 				"value": int(card.get("value", 1)),
+				"suit": suit,
 			})
 			next_uid += 1
 		hands[int(player_data.get("peer_id", -1))] = hand
 	_host_start_round()
+
 
 func _host_start_round() -> void:
 	if game_finished:
@@ -183,6 +226,7 @@ func _host_start_round() -> void:
 		])
 	_host_deadline(round_number, Rules.ROUND_LIMIT_SECONDS)
 
+
 @rpc("any_peer", "call_remote", "reliable")
 func _host_receive_submit(picks: Array) -> void:
 	if not multiplayer.is_server() or not round_active:
@@ -192,6 +236,7 @@ func _host_receive_submit(picks: Array) -> void:
 		return
 
 	_host_record_submission(sender, picks)
+
 
 func _host_record_submission(peer_id: int, picks: Array) -> void:
 	if not multiplayer.is_server() or not round_active or submissions.has(peer_id):
@@ -205,6 +250,7 @@ func _host_record_submission(peer_id: int, picks: Array) -> void:
 	elif submissions.size() == 1:
 		_broadcast(&"_start_countdown", [LOW_TIME])
 		_host_deadline(round_number, LOW_TIME)
+
 
 func _build_played_cards(peer_id: int, picks: Array) -> Array:
 	var played: Array = []
@@ -231,6 +277,7 @@ func _build_played_cards(peer_id: int, picks: Array) -> Array:
 		return []
 	return played
 
+
 func _host_deadline(for_round: int, seconds: float) -> void:
 	await get_tree().create_timer(seconds + DEADLINE_GRACE).timeout
 	if not round_active or round_number != for_round:
@@ -240,6 +287,7 @@ func _host_deadline(for_round: int, seconds: float) -> void:
 			submissions[peer_id] = []
 			_broadcast(&"_show_submission", [peer_id, []])
 	_host_resolve()
+
 
 func _host_resolve() -> void:
 	round_active = false
@@ -281,6 +329,7 @@ func _host_resolve() -> void:
 	else:
 		_host_start_round()
 
+
 func _on_peer_disconnected(peer_id: int) -> void:
 	if not multiplayer.is_server() or game_finished or not player_ids.has(peer_id):
 		return
@@ -288,6 +337,7 @@ func _on_peer_disconnected(peer_id: int) -> void:
 	game_finished = true
 	round_active = false
 	_broadcast(&"_game_over", [my_id, "Your opponent disconnected."])
+
 
 func _on_server_disconnected() -> void:
 	game_finished = true
@@ -329,8 +379,10 @@ func _receive_round(
 	_render_opponent()
 	_refresh_selection()
 	round_counter.text = "Round %d  |  Wins: You %d - %d Opponent" % [round_no, my_wins, opponent_wins]
+	_fit_layout()
 	if round_no == 1:
 		_play_deal_animation()
+
 
 @rpc("any_peer", "call_remote", "reliable")
 func _host_redraw_numbers() -> void:
@@ -364,6 +416,7 @@ func _host_redraw_numbers() -> void:
 	_broadcast(&"_receive_redraw", [sender, drawn_cards])
 	_host_record_submission(sender, [])
 
+
 @rpc("authority", "call_remote", "reliable")
 func _receive_redraw(peer_id: int, cards: Array) -> void:
 	if peer_id == my_id:
@@ -391,17 +444,20 @@ func _receive_redraw(peer_id: int, cards: Array) -> void:
 		_render_opponent()
 	_update_pickup_button()
 
+
 @rpc("authority", "call_remote", "reliable")
 func _redraw_unavailable() -> void:
 	redraw_pending = false
 	information.text = "There are no number cards in the discard pile to redraw."
 	_update_pickup_button()
 
+
 @rpc("authority", "call_remote", "reliable")
 func _pickup_rejected() -> void:
 	redraw_pending = false
 	information.text = "Pickup is no longer available this round."
 	_update_pickup_button()
+
 
 func _on_pickup_pressed() -> void:
 	if has_submitted or has_redrawn or redraw_pending or game_finished:
@@ -412,10 +468,12 @@ func _on_pickup_pressed() -> void:
 	_update_pickup_button()
 	_send(1, &"_host_redraw_numbers", [])
 
+
 func _update_pickup_button() -> void:
 	var available := round_received and discard_pile_count >= 12 and not game_finished
 	pickup_button.visible = available and not has_submitted
 	pickup_button.disabled = has_redrawn or redraw_pending
+
 
 @rpc("authority", "call_remote", "reliable")
 func _start_countdown(seconds: float) -> void:
@@ -423,6 +481,8 @@ func _start_countdown(seconds: float) -> void:
 		return
 	time_left = seconds if time_left < 0.0 else minf(seconds, time_left)
 	information.text = "Your opponent has submitted!"
+	_flash_ring(COLOR_LOW_TIME, 0.5)
+
 
 @rpc("authority", "call_remote", "reliable")
 func _show_result(result: Dictionary) -> void:
@@ -472,8 +532,10 @@ func _show_result(result: Dictionary) -> void:
 		outcome = "Draw - nobody discards."
 	elif winner == mine:
 		outcome = "You win the round!"
+		_flash_ring(Color(1.0, 0.85, 0.45), 0.8)
 	else:
 		outcome = "You lose the round and keep your cards."
+		_flash_ring(Color(0.35, 0.0, 0.04), 0.8)
 	if discard_mine.size() > 0:
 		outcome += "  You discard %d card(s)." % discard_mine.size()
 	lines.append(outcome)
@@ -489,7 +551,7 @@ func _show_result(result: Dictionary) -> void:
 	_render_hand()
 	_render_opponent()
 	_refresh_selection()
-	#information.text = " "
+
 
 @rpc("authority", "call_remote", "reliable")
 func _game_over(winner_peer: int, note: String) -> void:
@@ -502,8 +564,10 @@ func _game_over(winner_peer: int, note: String) -> void:
 	_refresh_selection()
 	if winner_peer == my_id:
 		round_counter.text = "You won!"
+		_flash_ring(Color(1.0, 0.85, 0.45), 0.8)
 	else:
 		round_counter.text = "You lost."
+		_flash_ring(Color(0.35, 0.0, 0.04), 0.8)
 	if note != "":
 		information.text = note
 	submit_button.disabled = true
@@ -511,6 +575,22 @@ func _game_over(winner_peer: int, note: String) -> void:
 	_show_restart_button()
 
 # ----------------------------------------------------------------- client: UI
+
+func _make_hand_card(card: Dictionary) -> Button:
+	var button := DevilStyle.make_card_button(
+		str(card["name"]),
+		str(card.get("suit", "")),
+		_card_title(card),
+		CARD_SIZE
+	)
+	button.toggle_mode = true
+	if button.icon != null:
+		button.add_theme_stylebox_override("hover_pressed", DevilStyle.box(Color(0, 0, 0, 0), DevilStyle.COL_EMBER, 3, 6, 2))
+	else:
+		button.add_theme_stylebox_override("hover_pressed", DevilStyle.box(Color(0.08, 0.0, 0.0), DevilStyle.COL_EMBER))
+	return button
+
+
 func _render_hand() -> void:
 	for child in player_cards_container.get_children():
 		child.queue_free()
@@ -519,15 +599,13 @@ func _render_hand() -> void:
 		var card: Dictionary = card_variant
 		var slot := Control.new()
 		slot.custom_minimum_size = CARD_SIZE + Vector2(0, SELECT_LIFT)
-		var card_button := Button.new()
+		var card_button := _make_hand_card(card)
 		card_button.set_meta("card", card)
-		card_button.toggle_mode = true
 		card_button.size = CARD_SIZE
 		card_button.position = Vector2(0, SELECT_LIFT)
 		card_button.disabled = has_submitted or game_finished
 		card_button.toggled.connect(_on_card_toggled.bind(card_button))
-		card_button.text = _card_title(card)
-		card_button.add_child(_make_order_badge())
+		card_button.add_child(_make_order_badge(card))
 		var param_control := _make_param_control(card)
 		if param_control != null:
 			card_button.add_child(param_control)
@@ -536,12 +614,16 @@ func _render_hand() -> void:
 		slot.set_meta("button", card_button)
 		player_cards_container.add_child(slot)
 		player_card_buttons.append(card_button)
+	_fit_hands()
 
-func _make_order_badge() -> Label:
+
+func _make_order_badge(card: Dictionary) -> Label:
 	var badge := Label.new()
 	badge.name = "OrderBadge"
 	badge.custom_minimum_size = Vector2(24, 24)
-	badge.position = Vector2(6, 6)
+	var card_name := str(card["name"])
+	var at_top := card_name == "king" or card_name == "jack"
+	badge.position = Vector2(6.0, 6.0) if at_top else Vector2(6.0, CARD_SIZE.y - 30.0)
 	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -551,6 +633,7 @@ func _make_order_badge() -> Label:
 	style.set_corner_radius_all(12)
 	badge.add_theme_stylebox_override("normal", style)
 	return badge
+
 
 func _make_param_control(card: Dictionary) -> Control:
 	var card_name := str(card["name"])
@@ -598,12 +681,14 @@ func _make_param_control(card: Dictionary) -> Control:
 	_set_param_control_locked(pill, has_submitted or game_finished)
 	return pill
 
+
 func _pill_style(color: Color, margin := 0) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = color
 	style.set_corner_radius_all(12)
 	style.set_content_margin_all(margin)
 	return style
+
 
 func _make_pill_button(text: String, active_color: Color, group: ButtonGroup = null) -> Button:
 	var button := Button.new()
@@ -620,9 +705,11 @@ func _make_pill_button(text: String, active_color: Color, group: ButtonGroup = n
 		button.button_group = group
 	return button
 
+
 func _set_param_control_locked(control: Control, locked: bool) -> void:
 	for node in control.find_children("*", "Button", true, false):
 		(node as Button).mouse_filter = Control.MOUSE_FILTER_IGNORE if locked else Control.MOUSE_FILTER_STOP
+
 
 func _step_king(uid: int, delta: int, value_label: Label) -> void:
 	var value := clampi(int(card_params.get(uid, _default_param("king"))) + delta, Rules.KING_MIN, Rules.KING_MAX)
@@ -630,11 +717,13 @@ func _step_king(uid: int, delta: int, value_label: Label) -> void:
 	value_label.text = str(value)
 	_refresh_selection()
 
+
 func _on_jack_picked(pressed: bool, uid: int, delta: int) -> void:
 	if not pressed:
 		return
 	card_params[uid] = delta
 	_refresh_selection()
+
 
 func _render_opponent() -> void:
 	for child in opponent_cards_container.get_children():
@@ -648,11 +737,11 @@ func _render_opponent() -> void:
 		return
 	opponent_heading.text = "%s (%d cards, face down)" % [", ".join(opponent_names), opponent_count]
 	for _index in range(opponent_count):
-		var card_back := Button.new()
-		card_back.text = "?"
-		card_back.custom_minimum_size = CARD_SIZE
+		var card_back := DevilStyle.make_card_back(OPPONENT_CARD_SIZE)
 		card_back.disabled = true
 		opponent_cards_container.add_child(card_back)
+	_fit_hands()
+
 
 func _card_title(card: Dictionary) -> String:
 	var card_name := str(card["name"])
@@ -661,6 +750,7 @@ func _card_title(card: Dictionary) -> String:
 	if card_name.is_valid_int():
 		return card_name
 	return card_name.capitalize()
+
 
 func _on_card_toggled(pressed: bool, card_button: Button) -> void:
 	if pressed:
@@ -672,6 +762,7 @@ func _on_card_toggled(pressed: bool, card_button: Button) -> void:
 	_set_card_lifted(card_button, pressed)
 	_refresh_selection()
 
+
 func _play_sfx(stream: AudioStream, volume_db := 0.0) -> void:
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
@@ -679,6 +770,7 @@ func _play_sfx(stream: AudioStream, volume_db := 0.0) -> void:
 	add_child(player)
 	player.finished.connect(player.queue_free)
 	player.play()
+
 
 func _set_card_lifted(card_button: Button, lifted: bool) -> void:
 	if card_button.has_meta("lift_tween"):
@@ -689,11 +781,17 @@ func _set_card_lifted(card_button: Button, lifted: bool) -> void:
 	tween.tween_property(card_button, "position:y", 0.0 if lifted else SELECT_LIFT, 0.18)
 	card_button.set_meta("lift_tween", tween)
 
+
 func _play_deal_animation() -> void:
+	_dealing = true
 	var piles: Array[Control] = [$playerCards, $opponentCards]
 	var rows: Array[BoxContainer] = [player_cards_container, opponent_cards_container]
 	var off_screen_y: Array[float] = [DEAL_OFFSCREEN, -DEAL_OFFSCREEN]
 	var peek_y: Array[float] = [-DEAL_PEEK, DEAL_PEEK]
+	var end_separation: Array[int] = [
+		_hand_separation(player_card_buttons.size(), CARD_SIZE.x, player_cards_container),
+		_hand_separation(opponent_count, OPPONENT_CARD_SIZE.x, opponent_cards_container),
+	]
 	var deck_x := get_viewport_rect().size.x * 0.5 - 100.0
 
 	var locked: Array[Button] = []
@@ -719,10 +817,10 @@ func _play_deal_animation() -> void:
 		tween.tween_property(pile, "position", rest, DEAL_SETTLE)
 		tween.parallel().tween_method(
 			func(value: float) -> void: row.add_theme_constant_override("separation", roundi(value)),
-			float(DEAL_STACK_SEPARATION), float(HAND_SEPARATION), DEAL_SPREAD
+			float(DEAL_STACK_SEPARATION), float(end_separation[index]), DEAL_SPREAD
 		).set_ease(Tween.EASE_IN_OUT)
 		finish = tween
-		
+
 	playerHeading.show()
 	opponentHeading.show()
 
@@ -730,9 +828,14 @@ func _play_deal_animation() -> void:
 	for card in locked:
 		if is_instance_valid(card):
 			card.disabled = has_submitted or game_finished
+	_dealing = false
+	_fit_hands()
+	_fit_layout()
+
 
 func _default_param(card_name: String) -> int:
 	return Rules.JACK_DELTA if card_name == "jack" else 5
+
 
 func _played_cards() -> Array:
 	var cards: Array = []
@@ -743,6 +846,7 @@ func _played_cards() -> Array:
 			card["param"] = int(card_params.get(card["uid"], _default_param(card_name)))
 		cards.append(card)
 	return cards
+
 
 func _refresh_selection() -> void:
 	for card_button in player_card_buttons:
@@ -757,9 +861,11 @@ func _refresh_selection() -> void:
 				param_control.modulate.a = 0.0
 				param_control.create_tween().tween_property(param_control, "modulate:a", 1.0, 0.15)
 			param_control.visible = show_control
+			card_button.z_index = 2 if show_control else 0
 
 	equation_label.text = _equation_text()
 	player_heading.text = "Your hand. (%d selected)" % selected_cards.size()
+
 
 func _equation_text() -> String:
 	if selected_cards.is_empty():
@@ -782,8 +888,10 @@ func _equation_text() -> String:
 			text += " = %s" % Rules.format_number(float(evaluation["value"]))
 	return text
 
+
 func _on_submit_pressed() -> void:
 	_submit_current_hand(false)
+
 
 func _submit_current_hand(auto_submit: bool) -> void:
 	if has_submitted or game_finished:
@@ -803,6 +911,7 @@ func _submit_current_hand(auto_submit: bool) -> void:
 	round_counter.text = "You submitted. Waiting for opponent."
 	_send(1, &"_host_receive_submit", [picks])
 
+
 func _lock_hand() -> void:
 	for card_button in player_card_buttons:
 		card_button.disabled = true
@@ -810,15 +919,18 @@ func _lock_hand() -> void:
 			_set_param_control_locked(card_button.get_meta("param_control"), true)
 	submit_button.disabled = true
 	_update_pickup_button()
-	
+
+
 func _show_restart_button() -> void:
 	if restart_button == null:
 		restart_button = Button.new()
 		restart_button.text = "Play again"
 		restart_button.pressed.connect(_on_restart_pressed)
 		add_child(restart_button)
-		restart_button.size = Vector2(200, 48)
-		restart_button.position = (get_viewport_rect().size - restart_button.size) / 2.0
+		DevilStyle.style_primary(restart_button, 38)
+		restart_button.size = Vector2(280, 68)
+		var view_size := get_viewport_rect().size
+		restart_button.position = Vector2((view_size.x - restart_button.size.x) / 2.0, view_size.y * 0.66)
 	restart_button.disabled = false
 	restart_button.show()
 
@@ -840,7 +952,283 @@ func _return_to_board() -> void:
 	var error := get_tree().change_scene_to_file(DRAW_SCENE)
 	if error != OK:
 		push_error("Could not open the draw scene: %s" % error_string(error))
-		
+
+# ------------------------------------------------------- hand layout (fit)
+
+func _prepare_hand_rows() -> void:
+	var rows: Array[BoxContainer] = [player_cards_container, opponent_cards_container]
+	for row in rows:
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		var scroll := row.get_parent() as ScrollContainer
+		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	(player_cards_container.get_parent() as Control).custom_minimum_size.y = CARD_SIZE.y + SELECT_LIFT + 4.0
+	(opponent_cards_container.get_parent() as Control).custom_minimum_size.y = OPPONENT_CARD_SIZE.y + 4.0
+
+
+# When a hand is too wide for the screen, cards overlap like a fanned hand
+# instead of running off the edge.
+func _hand_separation(count: int, card_width: float, container: Control) -> int:
+	if count <= 1:
+		return HAND_SEPARATION
+	var scroll := container.get_parent() as Control
+	var available := scroll.size.x - 12.0
+	if available <= 0.0:
+		return HAND_SEPARATION
+	var natural := float(count) * card_width + float(count - 1) * HAND_SEPARATION
+	if natural <= available:
+		return HAND_SEPARATION
+	var fitted := int(floorf((available - float(count) * card_width) / float(count - 1)))
+	return maxi(fitted, -int(card_width) + 24)
+
+
+func _fit_hands() -> void:
+	if _dealing:
+		return
+	player_cards_container.add_theme_constant_override(
+		"separation",
+		_hand_separation(player_card_buttons.size(), CARD_SIZE.x, player_cards_container)
+	)
+	opponent_cards_container.add_theme_constant_override(
+		"separation",
+		_hand_separation(opponent_count, OPPONENT_CARD_SIZE.x, opponent_cards_container)
+	)
+
+
+# Slides each hand back on screen if it sits past the top or bottom edge.
+func _fit_layout() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _dealing or not is_inside_tree():
+		return
+	_nudge_into_view($opponentCards, opponent_cards_container, OPPONENT_CARD_SIZE.y)
+	_nudge_into_view($playerCards, player_cards_container, CARD_SIZE.y + SELECT_LIFT)
+
+
+func _nudge_into_view(pile: Control, container: Control, content_height: float) -> void:
+	var top := container.get_global_rect().position.y
+	var bottom := top + content_height
+	var view_height := get_viewport_rect().size.y
+	var shift := 0.0
+	if top < EDGE_MARGIN:
+		shift = EDGE_MARGIN - top
+	elif bottom > view_height - EDGE_MARGIN:
+		shift = (view_height - EDGE_MARGIN) - bottom
+	if absf(shift) < 1.0:
+		return
+	var tween := pile.create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(pile, "position:y", pile.position.y + shift, 0.25)
+
+
+func _on_viewport_resized() -> void:
+	_fit_hands()
+	_fit_layout()
+
+# ------------------------------------------------------------ table look
+
+func _flash_ring(color: Color, strength := 1.0) -> void:
+	_flash_color = color
+	_flash = strength
+
+
+func _animate_table(delta: float) -> void:
+	var target_heat := 0.0
+	if time_left >= 0.0 and time_left <= LOW_TIME:
+		target_heat = 0.3 + 0.7 * (1.0 - time_left / LOW_TIME)
+	heat = move_toward(heat, target_heat, delta * 1.0)
+	_clock += delta
+	_ring_spin += delta * (0.15 + heat * 0.7)
+	_flash = move_toward(_flash, 0.0, delta * 0.4)
+	_pulse_phase += delta * lerpf(PULSE_SLOW, PULSE_FAST, heat)
+	_pulse = 0.5 + 0.5 * sin(_pulse_phase)
+
+	var center := target_num_label.get_global_rect().get_center()
+	_ring.global_position = center - _ring.size / 2.0
+	_ring.queue_redraw()
+	_sparks.global_position = center
+	_sparks.speed_scale = 1.0 + heat
+	_sparks.modulate = Color.WHITE.lerp(Color(1.0, 0.3, 0.2), heat)
+	_heat_overlay.modulate.a = heat * (HEAT_OVERLAY_MAX - 0.2 + 0.2 * _pulse)
+
+	timer_label.pivot_offset = timer_label.size / 2.0
+	timer_label.scale = Vector2.ONE * (1.0 + 0.05 * heat * _pulse)
+	timer_label.rotation = sin(_clock * 14.0) * 0.01 * heat
+
+
+func _draw_ring(canvas: Control) -> void:
+	var center := canvas.size / 2.0
+	var radius := minf(canvas.size.x, canvas.size.y) / 2.0 - 8.0
+	var tint := RING_CALM.lerp(RING_HOT, heat).lerp(_flash_color, _flash * 0.7)
+	var glow := Color(tint.r, tint.g, tint.b, (0.10 + 0.12 * _pulse) * (1.0 + 0.6 * heat))
+	var faint := Color(tint.r, tint.g, tint.b, 0.55)
+
+	canvas.draw_arc(center, radius, 0.0, TAU, 128, glow, 16.0, true)
+	canvas.draw_arc(center, radius, 0.0, TAU, 128, tint, 3.0, true)
+	canvas.draw_arc(center, radius * 0.9, 0.0, TAU, 128, faint, 1.5, true)
+	canvas.draw_arc(center, radius * 0.36, 0.0, TAU, 96, faint, 1.5, true)
+
+	var ticks := 72
+	for i in range(ticks):
+		var angle := _ring_spin * 0.6 + TAU * float(i) / float(ticks)
+		var direction := Vector2.RIGHT.rotated(angle)
+		var major := i % 6 == 0
+		var from_radius := radius * (0.92 if major else 0.95)
+		canvas.draw_line(
+			center + direction * from_radius,
+			center + direction * radius * 0.99,
+			faint,
+			2.0 if major else 1.0,
+			true
+		)
+
+	var star := PackedVector2Array()
+	var order: Array[int] = [0, 2, 4, 1, 3, 0]
+	for k in order:
+		var star_angle := -_ring_spin - PI / 2.0 + TAU * float(k) / 5.0
+		star.append(center + Vector2.RIGHT.rotated(star_angle) * radius * 0.8)
+	canvas.draw_polyline(star, Color(tint.r, tint.g, tint.b, 0.35 + 0.3 * heat), 2.0, true)
+
+
+func _add_back(node: Control, index: int, margin := 0) -> int:
+	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(node)
+	node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, margin)
+	move_child(node, index)
+	return index + 1
+
+
+func _build_table_look() -> void:
+	var t := DevilStyle.make_theme()
+	t.set_stylebox("scroll", "HScrollBar", DevilStyle.box(Color(0.05, 0.01, 0.02), DevilStyle.COL_BLOOD, 1, 4, 2))
+	t.set_stylebox("grabber", "HScrollBar", DevilStyle.box(DevilStyle.COL_BLOOD, DevilStyle.COL_EMBER, 1, 4, 2))
+	t.set_stylebox("grabber_highlight", "HScrollBar", DevilStyle.box(Color(0.7, 0.1, 0.08), DevilStyle.COL_EMBER, 1, 4, 2))
+	t.set_stylebox("grabber_pressed", "HScrollBar", DevilStyle.box(DevilStyle.COL_EMBER, DevilStyle.COL_EMBER, 1, 4, 2))
+	theme = t
+
+	var old_board := get_node_or_null("BG") as CanvasItem
+	if old_board != null:
+		old_board.hide()
+
+	var index := 0
+
+	# Blood-red felt: black base, crimson centre, soft grain.
+	var base := ColorRect.new()
+	base.color = Color(0.02, 0.0, 0.01)
+	index = _add_back(base, index)
+
+	var felt_gradient := Gradient.new()
+	felt_gradient.set_color(0, Color(0.32, 0.04, 0.07, 1.0))
+	felt_gradient.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
+	felt_gradient.add_point(0.65, Color(0.12, 0.015, 0.03, 0.9))
+	var felt_texture := GradientTexture2D.new()
+	felt_texture.gradient = felt_gradient
+	felt_texture.fill = GradientTexture2D.FILL_RADIAL
+	felt_texture.fill_from = Vector2(0.5, 0.5)
+	felt_texture.fill_to = Vector2(1.0, 0.5)
+	felt_texture.width = 512
+	felt_texture.height = 512
+	var felt := TextureRect.new()
+	felt.texture = felt_texture
+	felt.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	felt.stretch_mode = TextureRect.STRETCH_SCALE
+	index = _add_back(felt, index)
+
+	var noise := FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	noise.frequency = 0.35
+	var grain_texture := NoiseTexture2D.new()
+	grain_texture.noise = noise
+	grain_texture.width = 256
+	grain_texture.height = 256
+	grain_texture.seamless = true
+	var grain := TextureRect.new()
+	grain.texture = grain_texture
+	grain.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	grain.stretch_mode = TextureRect.STRETCH_TILE
+	grain.modulate = Color(1, 1, 1, 0.08)
+	index = _add_back(grain, index)
+
+	# Table rim: dark thick edge with a thin blood-red inlay.
+	var rim := Panel.new()
+	rim.add_theme_stylebox_override("panel", DevilStyle.box(Color(0, 0, 0, 0), Color(0.16, 0.03, 0.03), 16, 22, 0))
+	index = _add_back(rim, index, 6)
+	var inlay := Panel.new()
+	inlay.add_theme_stylebox_override("panel", DevilStyle.box(Color(0, 0, 0, 0), DevilStyle.COL_BLOOD, 2, 12, 0))
+	index = _add_back(inlay, index, 26)
+
+	# Summoning circle that sits behind the target number.
+	var view_size := get_viewport_rect().size
+	var ring_size := minf(view_size.x, view_size.y) * 0.5
+	_ring = Control.new()
+	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ring.size = Vector2(ring_size, ring_size)
+	_ring.draw.connect(_draw_ring.bind(_ring))
+	add_child(_ring)
+	move_child(_ring, index)
+	index += 1
+
+	# Sparks that bleed off the circle.
+	_sparks = CPUParticles2D.new()
+	_sparks.amount = 70
+	_sparks.lifetime = 3.2
+	_sparks.preprocess = 3.2
+	_sparks.emission_shape = CPUParticles2D.EMISSION_SHAPE_SPHERE_SURFACE
+	_sparks.emission_sphere_radius = ring_size * 0.48
+	_sparks.direction = Vector2(0, -1)
+	_sparks.spread = 180.0
+	_sparks.gravity = Vector2(0, -25)
+	_sparks.initial_velocity_min = 8.0
+	_sparks.initial_velocity_max = 35.0
+	_sparks.radial_accel_min = 15.0
+	_sparks.radial_accel_max = 60.0
+	_sparks.scale_amount_min = 1.5
+	_sparks.scale_amount_max = 3.5
+	var spark_fade := Gradient.new()
+	spark_fade.set_color(0, Color(1.0, 0.6, 0.2, 0.0))
+	spark_fade.set_color(1, Color(0.8, 0.1, 0.05, 0.0))
+	spark_fade.add_point(0.2, Color(1.0, 0.5, 0.15, 0.9))
+	_sparks.color_ramp = spark_fade
+	add_child(_sparks)
+	move_child(_sparks, index)
+
+
+func _add_heat_overlay() -> void:
+	var gradient := Gradient.new()
+	gradient.set_color(0, Color(0.8, 0.0, 0.0, 0.0))
+	gradient.set_color(1, Color(0.95, 0.04, 0.02, 0.85))
+	gradient.add_point(0.55, Color(0.8, 0.0, 0.0, 0.0))
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	texture.width = 512
+	texture.height = 512
+	_heat_overlay = TextureRect.new()
+	_heat_overlay.texture = texture
+	_heat_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_heat_overlay.stretch_mode = TextureRect.STRETCH_SCALE
+	_heat_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_heat_overlay.modulate.a = 0.0
+	add_child(_heat_overlay)
+	_heat_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+
+func _style_table_text() -> void:
+	round_counter.add_theme_color_override("font_color", DevilStyle.COL_BONE)
+	target_num_label.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
+	target_num_label.add_theme_color_override("font_outline_color", Color(0.12, 0.0, 0.0))
+	target_num_label.add_theme_constant_override("outline_size", 10)
+	DevilStyle.use_body_font(information, 24)
+	DevilStyle.use_body_font(equation_label, 26)
+	for heading in [playerHeading, opponentHeading]:
+		heading.add_theme_font_size_override("font_size", 30)
+		heading.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
+	DevilStyle.style_primary(submit_button, 32)
+	pickup_button.add_theme_font_size_override("font_size", 26)
+
+
 func _tidy_ui() -> void:
 	var box := VBoxContainer.new()
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -853,7 +1241,6 @@ func _tidy_ui() -> void:
 	box.offset_left = -450.0
 	box.offset_right = 450.0
 	box.offset_top = -300.0
-	box.offset_bottom = -300.0
 	box.offset_bottom = -270.0
 	box.grow_vertical = Control.GROW_DIRECTION_END
 
@@ -883,5 +1270,5 @@ func _tidy_ui() -> void:
 	timer_label.custom_minimum_size = Vector2(0, 56)
 	if target_title != null:
 		target_title.add_theme_font_size_override("font_size", 28)
-	target_num_label.add_theme_font_size_override("font_size", 96)
-	information.add_theme_font_size_override("font_size", 26)
+		target_title.add_theme_color_override("font_color", DevilStyle.COL_DIM)
+	target_num_label.add_theme_font_size_override("font_size", 110)

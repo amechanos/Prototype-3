@@ -3,6 +3,9 @@ extends Control
 const DECK_SIZE := 50
 const FACE_DOWN_LABEL := "?"
 const DRAW_THREE_SENTINEL := -1
+const BOARD_CARD_SIZE := Vector2(78, 120)
+const DECK_CARD_SIZE := Vector2(96, 148)
+const BOARD_GAP := 12.0
 const CARD_NAMES: Array[String] = [
 	"1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
 	"jack", "queen", "king", "joker", "minus", "multiplication", "division",
@@ -35,10 +38,13 @@ const CARD_COUNTS := {
 @onready var draw_three_button: Button = $MarginContainer/Layout/DrawOptions/DrawThreeButton
 @onready var status_label: Label = $MarginContainer/Layout/Status
 @onready var start_game_button: Button = $StartGame
+@onready var board_scroll: ScrollContainer = $MarginContainer/Layout/BoardScroll
 
+var board_card_size := BOARD_CARD_SIZE
 var available_card_ids: Array[int] = []
 var card_by_id: Dictionary = {}
 var card_name_by_id: Dictionary = {}
+var card_suit_by_id: Dictionary = {}
 var card_buttons: Dictionary = {}
 var collected_card_owners: Dictionary = {}
 var player_order: Array[int] = []
@@ -46,6 +52,8 @@ var current_turn_id := 1
 
 
 func _ready() -> void:
+	DevilStyle.apply(self)
+	_style_board_ui()
 	randomize()
 	if not _load_card_resources():
 		return
@@ -61,8 +69,8 @@ func _ready() -> void:
 	else:
 		status_label.text = "Waiting for the host to connect..."
 
-	board_grid.resized.connect(_update_grid_columns)
-	_update_grid_columns()
+	board_scroll.resized.connect(_fit_board_cards)
+	_fit_board_cards()
 
 
 func _load_card_resources() -> bool:
@@ -74,9 +82,10 @@ func _load_card_resources() -> bool:
 			push_error("Could not load card resource: %s" % resource_path)
 			return false
 
-		for _copy_index in range(CARD_COUNTS[card_name]):
+		for copy_index in range(CARD_COUNTS[card_name]):
 			card_by_id[card_id] = card_data
 			card_name_by_id[card_id] = card_name
+			card_suit_by_id[card_id] = DevilStyle.SUITS[copy_index % DevilStyle.SUITS.size()]
 			card_id += 1
 
 	if card_by_id.size() != DECK_SIZE:
@@ -110,15 +119,19 @@ func _render_board() -> void:
 	card_buttons.clear()
 
 	for card_id in available_card_ids:
-		var card_button := Button.new()
-		card_button.text = _get_board_card_name(card_id)
-		card_button.custom_minimum_size = Vector2(100, 68)
-		card_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if not _is_number_card(card_id):
+		var card_button: Button
+		if _is_number_card(card_id):
+			card_button = DevilStyle.make_card_back(board_card_size)
+		else:
+			card_button = DevilStyle.make_card_button(
+				str(card_name_by_id[card_id]),
+				str(card_suit_by_id[card_id]),
+				_get_board_card_name(card_id),
+				board_card_size
+			)
 			card_button.pressed.connect(_on_card_pressed.bind(card_id))
 		board_grid.add_child(card_button)
 		card_buttons[card_id] = card_button
-	_update_turn_ui()
 
 
 func _on_card_pressed(card_id: int) -> void:
@@ -353,10 +366,14 @@ func _render_your_deck() -> void:
 
 
 func _add_card_to_your_deck(card_id: int) -> void:
-	var collected_card := Label.new()
-	collected_card.text = _get_inventory_card_name(card_id)
-	collected_card.custom_minimum_size = Vector2(90, 30)
-	collected_card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var collected_card := DevilStyle.make_card_button(
+		str(card_name_by_id[card_id]),
+		str(card_suit_by_id[card_id]),
+		_get_inventory_card_name(card_id),
+		DECK_CARD_SIZE
+	)
+	collected_card.focus_mode = Control.FOCUS_NONE
+	collected_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	your_deck_flow.add_child(collected_card)
 
 
@@ -412,10 +429,28 @@ func _update_counts() -> void:
 	your_deck_count_label.text = "Cards in your deck: %d" % your_card_count
 
 
-func _update_grid_columns() -> void:
-	if board_grid.size.x <= 0:
+func _fit_board_cards() -> void:
+	var area := board_scroll.size
+	if area.x <= 0.0 or area.y <= 0.0:
 		return
-	board_grid.columns = clampi(int(board_grid.size.x / 118.0), 1, 10)
+	var aspect := BOARD_CARD_SIZE.y / BOARD_CARD_SIZE.x
+	var best_width := 0.0
+	var best_columns := 1
+	for columns in range(1, DECK_SIZE + 1):
+		var rows := ceili(float(DECK_SIZE) / float(columns))
+		var width_fit := (area.x - BOARD_GAP * (columns - 1)) / float(columns)
+		var height_fit := (area.y - BOARD_GAP * (rows - 1)) / float(rows) / aspect
+		var card_width := minf(width_fit, height_fit)
+		if card_width > best_width:
+			best_width = card_width
+			best_columns = columns
+	best_width = clampf(best_width, 30.0, 150.0)
+	board_card_size = Vector2(floorf(best_width), floorf(best_width * aspect))
+	board_grid.columns = best_columns
+	for card_id in card_buttons:
+		var card_button := card_buttons[card_id] as Button
+		if is_instance_valid(card_button):
+			card_button.custom_minimum_size = board_card_size
 
 
 func _get_card_name(card_data: Resource) -> String:
@@ -447,4 +482,35 @@ func _get_card_name_by_id(card_id: int) -> String:
 	if card_name.is_valid_int():
 		return card_name
 	return card_name.capitalize()
-	
+
+func _style_board_ui() -> void:
+	board_grid.add_theme_constant_override("h_separation", int(BOARD_GAP))
+	board_grid.add_theme_constant_override("v_separation", int(BOARD_GAP))
+	board_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	board_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	your_deck_flow.add_theme_constant_override("h_separation", 8)
+	your_deck_flow.add_theme_constant_override("v_separation", 8)
+
+	var deck_scroll := find_child("YourDeckScroll", true, false) as Control
+	if deck_scroll != null:
+		deck_scroll.custom_minimum_size.y = 312.0
+
+	var draw_row := draw_three_button.get_parent() as Control
+	if draw_row != null:
+		draw_row.custom_minimum_size.y = 64.0
+
+	turn_label.add_theme_font_size_override("font_size", 38)
+	turn_label.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
+
+	var heading := find_child("YourDeckHeading", true, false) as Label
+	if heading != null:
+		heading.add_theme_font_size_override("font_size", 34)
+		heading.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
+
+	DevilStyle.use_body_font(status_label, 22)
+	DevilStyle.use_body_font(your_deck_count_label, 22)
+	DevilStyle.use_body_font(board_count_label, 22)
+
+	draw_three_button.custom_minimum_size = Vector2(300, 64)
+	DevilStyle.style_primary(draw_three_button, 28)
+	DevilStyle.style_primary(start_game_button, 30)
