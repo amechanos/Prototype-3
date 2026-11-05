@@ -1,6 +1,7 @@
 [gd_scene format=3 uid="uid://bt4h54dm4elj8"]
 
-[ext_resource type="Script" uid="uid://b6g3biyyxyk3i" path="res://scripts/board.gd" id="1_p0ybc"]
+[ext_resource type="Texture2D" uid="uid://hfoouawwpu4v" path="res://Assets/TableTextureNoTarget.png" id="1_psm7c"]
+[ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="2_8l818"]
 
 [node name="board" type="Control" unique_id=1858233193]
 layout_mode = 3
@@ -9,7 +10,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_p0ybc")
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1326551160]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+texture = ExtResource("1_psm7c")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=1289284442]
 layout_mode = 1
@@ -101,5 +107,10 @@ offset_right = 1888.0
 offset_bottom = 261.0
 disabled = true
 text = "Start Game"
+
+[node name="BackcardStack" type="Sprite2D" parent="." unique_id=799782916]
+position = Vector2(158, 560)
+scale = Vector2(0.29666662, 0.29666662)
+texture = ExtResource("2_8l818")
 
 [connection signal="pressed" from="StartGame" to="." method="_on_start_game_pressed"]

@@ -1,8 +1,8 @@
 [gd_scene format=3 uid="uid://4fhnhk28s748"]
 
-[ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://scripts/table.gd" id="1_jd0nb"]
 [ext_resource type="Theme" uid="uid://3j3w31rkv5t8" path="res://styles/basic.tres" id="2_kl0hw"]
-[ext_resource type="Texture2D" uid="uid://c5c72uh42q8xd" path="res://Assets/bg.png" id="2_v5i0k"]
+[ext_resource type="Texture2D" uid="uid://bxhwqrq56hd3v" path="res://Assets/TableTexture.png" id="2_v5i0k"]
+[ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="3_kl0hw"]
 
 [node name="table" type="Control" unique_id=663337913]
 layout_mode = 3
@@ -11,7 +11,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_jd0nb")
 
 [node name="playerCards" type="MarginContainer" parent="." unique_id=1449315450]
 layout_mode = 0
@@ -109,19 +108,19 @@ vertical_alignment = 1
 
 [node name="UI" type="Control" parent="." unique_id=497827540]
 anchors_preset = 0
-offset_left = 384.0
-offset_top = 392.0
-offset_right = 1536.0
-offset_bottom = 632.0
+offset_left = 393.0
+offset_top = 399.0
+offset_right = 1545.0
+offset_bottom = 639.0
 mouse_filter = 2
 
 [node name="Timer" type="Label" parent="UI" unique_id=1000903203]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_left = 480.0
-offset_top = 32.0
-offset_right = 672.0
-offset_bottom = 99.0
+offset_left = 769.0
+offset_top = 73.0
+offset_right = 961.0
+offset_bottom = 140.0
 theme_override_font_sizes/font_size = 48
 text = "TIMER"
 horizontal_alignment = 1
@@ -130,10 +129,10 @@ autowrap_mode = 3
 
 [node name="Round" type="Label" parent="UI" unique_id=549880970]
 layout_mode = 0
-offset_left = 256.0
-offset_top = -8.0
-offset_right = 896.0
-offset_bottom = 56.0
+offset_left = 217.0
+offset_top = -124.0
+offset_right = 857.0
+offset_bottom = -60.0
 theme_override_font_sizes/font_size = 24
 text = "ROUND 0"
 horizontal_alignment = 1
@@ -143,9 +142,10 @@ autowrap_mode = 3
 [node name="Info" type="Label" parent="UI" unique_id=1318845698]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_top = 264.0
-offset_right = 1152.0
-offset_bottom = 376.0
+offset_left = -23.0
+offset_top = 277.0
+offset_right = 1129.0
+offset_bottom = 389.0
 theme_override_font_sizes/font_size = 24
 text = "TEXT HERE"
 horizontal_alignment = 1
@@ -155,10 +155,10 @@ autowrap_mode = 3
 [node name="TargetNumber" type="Label" parent="UI" unique_id=1222852682]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 0
-offset_left = 512.0
-offset_top = 104.0
-offset_right = 640.0
-offset_bottom = 279.0
+offset_left = 464.0
+offset_top = 34.0
+offset_right = 613.0
+offset_bottom = 207.0
 theme_override_font_sizes/font_size = 128
 text = "?"
 horizontal_alignment = 1
@@ -168,10 +168,10 @@ autowrap_mode = 3
 [node name="TargetText" type="Label" parent="UI" unique_id=349286069]
 custom_minimum_size = Vector2(80, 40)
 layout_mode = 0
-offset_left = 456.0
-offset_top = 96.0
-offset_right = 696.0
-offset_bottom = 136.0
+offset_left = 427.0
+offset_top = -35.0
+offset_right = 667.0
+offset_bottom = 5.0
 theme_override_font_sizes/font_size = 24
 text = "Target Number"
 horizontal_alignment = 1
@@ -188,6 +188,11 @@ texture = ExtResource("2_v5i0k")
 expand_mode = 2
 stretch_mode = 5
 metadata/_edit_lock_ = true
+
+[node name="BackcardStack" type="Sprite2D" parent="." unique_id=103361275]
+position = Vector2(158, 560)
+scale = Vector2(0.29666662, 0.29666662)
+texture = ExtResource("3_kl0hw")
 
 [connection signal="pressed" from="PlayerInterface/Submit" to="." method="_on_submit_pressed"]
 [connection signal="pressed" from="PlayerInterface/Pickup" to="." method="_on_pickup_pressed"]
