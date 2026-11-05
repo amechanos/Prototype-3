@@ -17,6 +17,7 @@ dest_files=["res://.godot/imported/Skull4.png-254e5b5e4eff459fe102d4d23d9dac38.c
 
 compress/mode=0
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

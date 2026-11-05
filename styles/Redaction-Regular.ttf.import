@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://citdvsfgf06s8"
-path="res://.godot/imported/JimNightshade-Regular.ttf-c99e36763488f89f84ebd5c04e0544f4.fontdata"
+uid="uid://diiok1efggv4y"
+path="res://.godot/imported/Redaction-Regular.ttf-11f717dd01789cf43a2504e60d506fea.fontdata"
 
 [deps]
 
-source_file="res://Assets/JimNightshade-Regular.ttf"
-dest_files=["res://.godot/imported/JimNightshade-Regular.ttf-c99e36763488f89f84ebd5c04e0544f4.fontdata"]
+source_file="res://styles/Redaction-Regular.ttf"
+dest_files=["res://.godot/imported/Redaction-Regular.ttf-11f717dd01789cf43a2504e60d506fea.fontdata"]
 
 [params]
 

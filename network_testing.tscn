@@ -1,7 +1,13 @@
 [gd_scene format=3 uid="uid://b32watm2144ur"]
 
-[ext_resource type="Script" uid="uid://bprudmac4b7md" path="res://network_testing.gd" id="1"]
-[ext_resource type="Script" uid="uid://da44xo2bgfgfv" path="res://tutorial.gd" id="2_38ca5"]
+[ext_resource type="Script" uid="uid://bprudmac4b7md" path="res://scripts/network_testing.gd" id="1"]
+[ext_resource type="Script" uid="uid://da44xo2bgfgfv" path="res://scripts/tutorial.gd" id="2_38ca5"]
+[ext_resource type="StyleBox" uid="uid://sbi7k62dr51g" path="res://styles/disabled.tres" id="2_e4eyc"]
+[ext_resource type="Theme" uid="uid://daw7qqdtvkk5w" path="res://styles/uppercase.tres" id="4_y6yyj"]
+[ext_resource type="StyleBox" uid="uid://mdwbeoga6ja1" path="res://styles/button2.tres" id="5_fcr2s"]
+[ext_resource type="Texture2D" uid="uid://oj7tqw2g5igk" path="res://styles/glow.tres" id="6_js4g3"]
+[ext_resource type="StyleBox" uid="uid://bl81fau3ee1og" path="res://styles/button2hover.tres" id="6_y6yyj"]
+[ext_resource type="Texture2D" uid="uid://bqj76vqj6r6eu" path="res://styles/bg.tres" id="8_fcr2s"]
 
 [node name="NetworkTesting" type="Control" unique_id=1201349073]
 layout_mode = 3
@@ -53,10 +59,12 @@ horizontal_alignment = 1
 
 [node name="HardModeButton" type="CheckButton" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=1648841716]
 unique_name_in_owner = true
-visible = false
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-text = "Hard Mode (hide equation result)"
+text = "          Hard Mode"
+alignment = 1
+icon_alignment = 1
 
 [node name="PlayButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=1230960763]
 unique_name_in_owner = true
@@ -71,10 +79,11 @@ theme_override_constants/separation = 36
 
 [node name="JoinAddress" type="LineEdit" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=2099335805]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
-placeholder_text = "Host LAN or public IPv4 address"
+placeholder_text = "    Host LAN or public IPv4 address"
+alignment = 1
 
 [node name="JoinButton" type="Button" parent="CenterContainer/PanelContainer/MarginContainer/Content" unique_id=33176581]
 unique_name_in_owner = true
@@ -88,6 +97,7 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
+theme_override_styles/disabled = ExtResource("2_e4eyc")
 disabled = true
 text = "Disconnect"
 
@@ -128,6 +138,7 @@ script = ExtResource("2_38ca5")
 
 [node name="Title" type="Label" parent="CenterContainer2/PanelContainer/MarginContainer/Tutorial" unique_id=1537062590]
 layout_mode = 2
+theme = ExtResource("4_y6yyj")
 theme_override_font_sizes/font_size = 36
 text = "How to Play"
 
@@ -136,6 +147,7 @@ layout_mode = 2
 
 [node name="Heading" type="Label" parent="CenterContainer2/PanelContainer/MarginContainer/Tutorial" unique_id=553915962]
 layout_mode = 2
+theme = ExtResource("4_y6yyj")
 theme_override_font_sizes/font_size = 32
 text = "Heading"
 
@@ -154,6 +166,11 @@ theme_override_constants/separation = 245
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = ExtResource("5_fcr2s")
+theme_override_styles/pressed = ExtResource("6_y6yyj")
+theme_override_styles/hover = ExtResource("6_y6yyj")
+theme_override_styles/disabled = ExtResource("2_e4eyc")
+theme_override_styles/focus = ExtResource("6_y6yyj")
 text = "<"
 
 [node name="Page" type="Label" parent="CenterContainer2/PanelContainer/MarginContainer/Tutorial/HBoxContainer" unique_id=1459595327]
@@ -168,7 +185,60 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(64, 64)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
+theme_override_styles/normal = ExtResource("5_fcr2s")
+theme_override_styles/pressed = ExtResource("6_y6yyj")
+theme_override_styles/hover = ExtResource("6_y6yyj")
+theme_override_styles/disabled = ExtResource("2_e4eyc")
+theme_override_styles/focus = ExtResource("6_y6yyj")
 text = ">"
+
+[node name="background" type="Control" parent="." unique_id=1910375109]
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+metadata/_edit_lock_ = true
+
+[node name="glow" type="TextureRect" parent="background" unique_id=876116416]
+z_index = -1
+layout_mode = 0
+offset_left = -80.0
+offset_top = -24.0
+offset_right = 1040.0
+offset_bottom = 1088.0
+mouse_filter = 2
+texture = ExtResource("6_js4g3")
+metadata/_edit_lock_ = true
+
+[node name="glow2" type="TextureRect" parent="background" unique_id=938932644]
+z_index = -1
+layout_mode = 0
+offset_left = 880.0
+offset_top = -24.0
+offset_right = 2000.0
+offset_bottom = 1088.0
+mouse_filter = 2
+texture = ExtResource("6_js4g3")
+metadata/_edit_lock_ = true
+
+[node name="TextureRect" type="TextureRect" parent="background" unique_id=1622278434]
+z_index = -2
+layout_mode = 0
+offset_top = 512.0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+texture = ExtResource("8_fcr2s")
+metadata/_edit_lock_ = true
+
+[node name="bg" type="ColorRect" parent="background" unique_id=2097818142]
+z_index = -4
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1088.0
+mouse_filter = 2
+color = Color(0.078431375, 0, 0, 1)
+metadata/_edit_lock_ = true
 
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/Content/HostButton" to="." method="_on_host_pressed"]
 [connection signal="toggled" from="CenterContainer/PanelContainer/MarginContainer/Content/HardModeButton" to="." method="_on_hard_mode_toggled"]

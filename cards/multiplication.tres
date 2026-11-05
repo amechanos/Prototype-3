@@ -1,6 +1,6 @@
 [gd_resource type="Resource" format=3 uid="uid://cqgggeqionf1j"]
 
-[ext_resource type="Script" uid="uid://coaap13sodfub" path="res://card.gd" id="1_y2kw5"]
+[ext_resource type="Script" uid="uid://coaap13sodfub" path="res://scripts/card.gd" id="1_y2kw5"]
 
 [resource]
 resource_local_to_scene = true
