@@ -1,7 +1,10 @@
 [gd_scene format=3 uid="uid://bt4h54dm4elj8"]
 
+[ext_resource type="Script" uid="uid://b6g3biyyxyk3i" path="res://scripts/board.gd" id="1_p0ybc"]
 [ext_resource type="Texture2D" uid="uid://hfoouawwpu4v" path="res://Assets/TableTextureNoTarget.png" id="1_psm7c"]
 [ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="2_8l818"]
+[ext_resource type="Theme" uid="uid://3j3w31rkv5t8" path="res://styles/basic.tres" id="2_jqgjh"]
+[ext_resource type="StyleBox" uid="uid://bbgubduk7bkwt" path="res://styles/deckbutton.tres" id="3_vf5bc"]
 
 [node name="board" type="Control" unique_id=1858233193]
 layout_mode = 3
@@ -10,11 +13,13 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_p0ybc")
 
 [node name="TextureRect" type="TextureRect" parent="." unique_id=1326551160]
 layout_mode = 0
 offset_right = 1920.0
 offset_bottom = 1080.0
+mouse_filter = 2
 texture = ExtResource("1_psm7c")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=1289284442]
@@ -63,8 +68,10 @@ theme_override_constants/separation = 10
 
 [node name="DrawThreeButton" type="Button" parent="MarginContainer/Layout/DrawOptions" unique_id=765437192]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(256, 42)
 layout_mode = 2
+theme = ExtResource("2_jqgjh")
+theme_override_styles/normal = ExtResource("3_vf5bc")
 text = "Draw 3 face-down cards"
 
 [node name="Status" type="Label" parent="MarginContainer/Layout" unique_id=539634013]
@@ -105,11 +112,15 @@ offset_left = 1696.0
 offset_top = 112.0
 offset_right = 1888.0
 offset_bottom = 261.0
+theme_override_styles/normal = ExtResource("3_vf5bc")
+theme_override_styles/pressed = ExtResource("3_vf5bc")
+theme_override_styles/hover = ExtResource("3_vf5bc")
+theme_override_styles/disabled = ExtResource("3_vf5bc")
 disabled = true
 text = "Start Game"
 
 [node name="BackcardStack" type="Sprite2D" parent="." unique_id=799782916]
-position = Vector2(158, 560)
+position = Vector2(352, 456.00003)
 scale = Vector2(0.29666662, 0.29666662)
 texture = ExtResource("2_8l818")
 

@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://4fhnhk28s748"]
 
+[ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://scripts/table.gd" id="1_jd0nb"]
 [ext_resource type="Theme" uid="uid://3j3w31rkv5t8" path="res://styles/basic.tres" id="2_kl0hw"]
 [ext_resource type="Texture2D" uid="uid://bxhwqrq56hd3v" path="res://Assets/TableTexture.png" id="2_v5i0k"]
 [ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="3_kl0hw"]
@@ -11,6 +12,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+script = ExtResource("1_jd0nb")
 
 [node name="playerCards" type="MarginContainer" parent="." unique_id=1449315450]
 layout_mode = 0
