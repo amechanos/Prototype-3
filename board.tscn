@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" uid="uid://b6g3biyyxyk3i" path="res://scripts/board.gd" id="1_p0ybc"]
 [ext_resource type="Texture2D" uid="uid://hfoouawwpu4v" path="res://Assets/TableTextureNoTarget.png" id="1_psm7c"]
-[ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="2_8l818"]
 [ext_resource type="Theme" uid="uid://3j3w31rkv5t8" path="res://styles/basic.tres" id="2_jqgjh"]
 [ext_resource type="StyleBox" uid="uid://bbgubduk7bkwt" path="res://styles/deckbutton.tres" id="3_vf5bc"]
 
@@ -118,10 +117,5 @@ theme_override_styles/hover = ExtResource("3_vf5bc")
 theme_override_styles/disabled = ExtResource("3_vf5bc")
 disabled = true
 text = "Start Game"
-
-[node name="BackcardStack" type="Sprite2D" parent="." unique_id=799782916]
-position = Vector2(352, 456.00003)
-scale = Vector2(0.29666662, 0.29666662)
-texture = ExtResource("2_8l818")
 
 [connection signal="pressed" from="StartGame" to="." method="_on_start_game_pressed"]

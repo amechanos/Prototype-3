@@ -99,8 +99,7 @@ var _ring: Control
 var _sparks: CPUParticles2D
 var _heat_overlay: TextureRect
 
-
-func _ready() -> void:
+func _ready() -> void: 
 	_build_table_look()
 	_tidy_ui()
 	_prepare_hand_rows()
@@ -193,7 +192,7 @@ func _host_begin() -> void:
 			if suit == "":
 				var copy_index := int(copy_counts.get(card_name, 0))
 				copy_counts[card_name] = copy_index + 1
-				suit = DevilStyle.SUITS[copy_index % DevilStyle.SUITS.size()]
+				suit = CardTexture.SUITS[copy_index % CardTexture.SUITS.size()]
 			hand.append({
 				"uid": next_uid,
 				"name": card_name,
@@ -577,17 +576,13 @@ func _game_over(winner_peer: int, note: String) -> void:
 # ----------------------------------------------------------------- client: UI
 
 func _make_hand_card(card: Dictionary) -> Button:
-	var button := DevilStyle.make_card_button(
+	var button := CardTexture.make_card_button(
 		str(card["name"]),
 		str(card.get("suit", "")),
 		_card_title(card),
 		CARD_SIZE
 	)
 	button.toggle_mode = true
-	if button.icon != null:
-		button.add_theme_stylebox_override("hover_pressed", DevilStyle.box(Color(0, 0, 0, 0), DevilStyle.COL_EMBER, 3, 6, 2))
-	else:
-		button.add_theme_stylebox_override("hover_pressed", DevilStyle.box(Color(0.08, 0.0, 0.0), DevilStyle.COL_EMBER))
 	return button
 
 
@@ -737,7 +732,7 @@ func _render_opponent() -> void:
 		return
 	opponent_heading.text = "%s (%d cards, face down)" % [", ".join(opponent_names), opponent_count]
 	for _index in range(opponent_count):
-		var card_back := DevilStyle.make_card_back(OPPONENT_CARD_SIZE)
+		var card_back := CardTexture.make_card_back(OPPONENT_CARD_SIZE)
 		card_back.disabled = true
 		opponent_cards_container.add_child(card_back)
 	_fit_hands()
@@ -927,7 +922,7 @@ func _show_restart_button() -> void:
 		restart_button.text = "Play again"
 		restart_button.pressed.connect(_on_restart_pressed)
 		add_child(restart_button)
-		DevilStyle.style_primary(restart_button, 38)
+		restart_button.add_theme_font_size_override("font_size", 38)
 		restart_button.size = Vector2(280, 68)
 		var view_size := get_viewport_rect().size
 		restart_button.position = Vector2((view_size.x - restart_button.size.x) / 2.0, view_size.y * 0.66)
@@ -1090,72 +1085,8 @@ func _draw_ring(canvas: Control) -> void:
 	canvas.draw_polyline(star, Color(tint.r, tint.g, tint.b, 0.35 + 0.3 * heat), 2.0, true)
 
 
-func _add_back(node: Control, index: int, margin := 0) -> int:
-	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(node)
-	node.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, margin)
-	move_child(node, index)
-	return index + 1
-
-
 func _build_table_look() -> void:
-	var t := DevilStyle.make_theme()
-	t.set_stylebox("scroll", "HScrollBar", DevilStyle.box(Color(0.05, 0.01, 0.02), DevilStyle.COL_BLOOD, 1, 4, 2))
-	t.set_stylebox("grabber", "HScrollBar", DevilStyle.box(DevilStyle.COL_BLOOD, DevilStyle.COL_EMBER, 1, 4, 2))
-	t.set_stylebox("grabber_highlight", "HScrollBar", DevilStyle.box(Color(0.7, 0.1, 0.08), DevilStyle.COL_EMBER, 1, 4, 2))
-	t.set_stylebox("grabber_pressed", "HScrollBar", DevilStyle.box(DevilStyle.COL_EMBER, DevilStyle.COL_EMBER, 1, 4, 2))
-	theme = t
-
-	var old_board := get_node_or_null("BG") as CanvasItem
-	if old_board != null:
-		old_board.hide()
-
 	var index := 0
-
-	# Blood-red felt: black base, crimson centre, soft grain.
-	var base := ColorRect.new()
-	base.color = Color(0.02, 0.0, 0.01)
-	index = _add_back(base, index)
-
-	var felt_gradient := Gradient.new()
-	felt_gradient.set_color(0, Color(0.32, 0.04, 0.07, 1.0))
-	felt_gradient.set_color(1, Color(0.0, 0.0, 0.0, 0.0))
-	felt_gradient.add_point(0.65, Color(0.12, 0.015, 0.03, 0.9))
-	var felt_texture := GradientTexture2D.new()
-	felt_texture.gradient = felt_gradient
-	felt_texture.fill = GradientTexture2D.FILL_RADIAL
-	felt_texture.fill_from = Vector2(0.5, 0.5)
-	felt_texture.fill_to = Vector2(1.0, 0.5)
-	felt_texture.width = 512
-	felt_texture.height = 512
-	var felt := TextureRect.new()
-	felt.texture = felt_texture
-	felt.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	felt.stretch_mode = TextureRect.STRETCH_SCALE
-	index = _add_back(felt, index)
-
-	var noise := FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
-	noise.frequency = 0.35
-	var grain_texture := NoiseTexture2D.new()
-	grain_texture.noise = noise
-	grain_texture.width = 256
-	grain_texture.height = 256
-	grain_texture.seamless = true
-	var grain := TextureRect.new()
-	grain.texture = grain_texture
-	grain.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	grain.stretch_mode = TextureRect.STRETCH_TILE
-	grain.modulate = Color(1, 1, 1, 0.08)
-	index = _add_back(grain, index)
-
-	# Table rim: dark thick edge with a thin blood-red inlay.
-	var rim := Panel.new()
-	rim.add_theme_stylebox_override("panel", DevilStyle.box(Color(0, 0, 0, 0), Color(0.16, 0.03, 0.03), 16, 22, 0))
-	index = _add_back(rim, index, 6)
-	var inlay := Panel.new()
-	inlay.add_theme_stylebox_override("panel", DevilStyle.box(Color(0, 0, 0, 0), DevilStyle.COL_BLOOD, 2, 12, 0))
-	index = _add_back(inlay, index, 26)
 
 	# Summoning circle that sits behind the target number.
 	var view_size := get_viewport_rect().size
@@ -1216,16 +1147,13 @@ func _add_heat_overlay() -> void:
 
 
 func _style_table_text() -> void:
-	round_counter.add_theme_color_override("font_color", DevilStyle.COL_BONE)
-	target_num_label.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
 	target_num_label.add_theme_color_override("font_outline_color", Color(0.12, 0.0, 0.0))
 	target_num_label.add_theme_constant_override("outline_size", 10)
-	DevilStyle.use_body_font(information, 24)
-	DevilStyle.use_body_font(equation_label, 26)
+	information.add_theme_font_size_override("font_size", 24)
+	equation_label.add_theme_font_size_override("font_size", 26)
 	for heading in [playerHeading, opponentHeading]:
 		heading.add_theme_font_size_override("font_size", 30)
-		heading.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
-	DevilStyle.style_primary(submit_button, 32)
+	submit_button.add_theme_font_size_override("font_size", 32)
 	pickup_button.add_theme_font_size_override("font_size", 26)
 
 
@@ -1270,5 +1198,4 @@ func _tidy_ui() -> void:
 	timer_label.custom_minimum_size = Vector2(0, 56)
 	if target_title != null:
 		target_title.add_theme_font_size_override("font_size", 28)
-		target_title.add_theme_color_override("font_color", DevilStyle.COL_DIM)
 	target_num_label.add_theme_font_size_override("font_size", 110)

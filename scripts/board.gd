@@ -52,7 +52,6 @@ var current_turn_id := 1
 
 
 func _ready() -> void:
-	DevilStyle.apply(self)
 	_style_board_ui()
 	randomize()
 	if not _load_card_resources():
@@ -85,7 +84,7 @@ func _load_card_resources() -> bool:
 		for copy_index in range(CARD_COUNTS[card_name]):
 			card_by_id[card_id] = card_data
 			card_name_by_id[card_id] = card_name
-			card_suit_by_id[card_id] = DevilStyle.SUITS[copy_index % DevilStyle.SUITS.size()]
+			card_suit_by_id[card_id] = CardTexture.SUITS[copy_index % CardTexture.SUITS.size()]
 			card_id += 1
 
 	if card_by_id.size() != DECK_SIZE:
@@ -121,9 +120,9 @@ func _render_board() -> void:
 	for card_id in available_card_ids:
 		var card_button: Button
 		if _is_number_card(card_id):
-			card_button = DevilStyle.make_card_back(board_card_size)
+			card_button = CardTexture.make_card_back(board_card_size)
 		else:
-			card_button = DevilStyle.make_card_button(
+			card_button = CardTexture.make_card_button(
 				str(card_name_by_id[card_id]),
 				str(card_suit_by_id[card_id]),
 				_get_board_card_name(card_id),
@@ -325,6 +324,7 @@ func _build_players_data() -> Array[Dictionary]:
 				cards.append({
 					"name": _get_card_name_by_id(card_id),
 					"value": int(card_by_id[card_id].get("value")),
+					"suit": str(card_suit_by_id[card_id]),
 				})
 
 		players_data.append({
@@ -366,7 +366,7 @@ func _render_your_deck() -> void:
 
 
 func _add_card_to_your_deck(card_id: int) -> void:
-	var collected_card := DevilStyle.make_card_button(
+	var collected_card := CardTexture.make_card_button(
 		str(card_name_by_id[card_id]),
 		str(card_suit_by_id[card_id]),
 		_get_inventory_card_name(card_id),
@@ -500,17 +500,15 @@ func _style_board_ui() -> void:
 		draw_row.custom_minimum_size.y = 64.0
 
 	turn_label.add_theme_font_size_override("font_size", 38)
-	turn_label.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
 
 	var heading := find_child("YourDeckHeading", true, false) as Label
 	if heading != null:
 		heading.add_theme_font_size_override("font_size", 34)
-		heading.add_theme_color_override("font_color", DevilStyle.COL_EMBER)
 
-	DevilStyle.use_body_font(status_label, 22)
-	DevilStyle.use_body_font(your_deck_count_label, 22)
-	DevilStyle.use_body_font(board_count_label, 22)
+	status_label.add_theme_font_size_override("font_size", 22)
+	your_deck_count_label.add_theme_font_size_override("font_size", 22)
+	board_count_label.add_theme_font_size_override("font_size", 22)
 
 	draw_three_button.custom_minimum_size = Vector2(300, 64)
-	DevilStyle.style_primary(draw_three_button, 28)
-	DevilStyle.style_primary(start_game_button, 30)
+	draw_three_button.add_theme_font_size_override("font_size", 28)
+	start_game_button.add_theme_font_size_override("font_size", 30)
