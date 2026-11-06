@@ -1,7 +1,9 @@
 [gd_resource type="Resource" format=3 uid="uid://ctgn4hjvci3ck"]
 
 [ext_resource type="Script" uid="uid://coaap13sodfub" path="res://scripts/card.gd" id="1_6vkl2"]
+[ext_resource type="Texture2D" uid="uid://cabaa8se8i4mx" path="res://Assets/cards/Joker.png" id="2_aydw5"]
 
 [resource]
 script = ExtResource("1_6vkl2")
 data = 4
+texture = ExtResource("2_aydw5")
