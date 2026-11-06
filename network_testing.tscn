@@ -240,7 +240,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_right = -960.0
+offset_left = 32.0
+offset_top = 176.0
+offset_right = -928.0
+offset_bottom = -64.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -337,6 +340,7 @@ anchors_preset = 0
 offset_right = 40.0
 offset_bottom = 40.0
 mouse_filter = 2
+metadata/_edit_lock_ = true
 
 [node name="TextureRect" type="TextureRect" parent="background" unique_id=1622278434]
 z_index = -2
@@ -346,6 +350,21 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 mouse_filter = 2
 texture = ExtResource("9_h8pix")
+metadata/_edit_lock_ = true
+
+[node name="Label" type="Label" parent="." unique_id=1547962882]
+layout_mode = 0
+offset_left = 64.0
+offset_top = 96.0
+offset_right = 1088.0
+offset_bottom = 256.0
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0)
+theme_override_constants/shadow_offset_x = 15
+theme_override_constants/shadow_offset_y = 10
+theme_override_constants/shadow_outline_size = 10
+theme_override_fonts/font = ExtResource("4_y6yyj")
+theme_override_font_sizes/font_size = 96
+text = "Devil's Gambit"
 
 [connection signal="pressed" from="CenterContainer/PanelContainer/MarginContainer/Content/HostButton" to="." method="_on_host_pressed"]
 [connection signal="toggled" from="CenterContainer/PanelContainer/MarginContainer/Content/HardModeButton" to="." method="_on_hard_mode_toggled"]
