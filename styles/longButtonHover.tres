@@ -1,0 +1,9 @@
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://bf6pkyqsjjgcr"]
+
+[ext_resource type="Texture2D" uid="uid://dq2bfsp7f5oe" path="res://styles/longButton.png" id="1_kvg5g"]
+
+[resource]
+texture = ExtResource("1_kvg5g")
+expand_margin_top = 15.0
+expand_margin_bottom = 15.0
+modulate_color = Color(0.7, 0.7, 0.7, 1)

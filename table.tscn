@@ -3,8 +3,10 @@
 [ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://scripts/table.gd" id="1_jd0nb"]
 [ext_resource type="Theme" uid="uid://3j3w31rkv5t8" path="res://styles/basic.tres" id="2_kl0hw"]
 [ext_resource type="Texture2D" uid="uid://bxhwqrq56hd3v" path="res://Assets/TableTexture.png" id="2_v5i0k"]
-[ext_resource type="StyleBox" uid="uid://bbgubduk7bkwt" path="res://styles/deckbutton.tres" id="3_67vji"]
+[ext_resource type="FontFile" uid="uid://citdvsfgf06s8" path="res://styles/JimNightshade-Regular.ttf" id="3_bhh2s"]
 [ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="3_kl0hw"]
+[ext_resource type="StyleBox" uid="uid://bcsijextfb8q2" path="res://styles/mainButton.tres" id="4_64sdq"]
+[ext_resource type="StyleBox" uid="uid://1wf1m1rusw8f" path="res://styles/mainButtonHover.tres" id="5_ormek"]
 
 [node name="table" type="Control" unique_id=663337913]
 layout_mode = 3
@@ -87,10 +89,14 @@ offset_top = 64.0
 offset_right = 1104.0
 offset_bottom = 128.0
 theme = ExtResource("2_kl0hw")
-theme_override_styles/normal = ExtResource("3_67vji")
-theme_override_styles/pressed = ExtResource("3_67vji")
-theme_override_styles/hover = ExtResource("3_67vji")
-theme_override_styles/disabled = ExtResource("3_67vji")
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_bhh2s")
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = ExtResource("4_64sdq")
+theme_override_styles/pressed = ExtResource("5_ormek")
+theme_override_styles/hover = ExtResource("5_ormek")
+theme_override_styles/disabled = ExtResource("5_ormek")
 text = "Submit"
 
 [node name="Pickup" type="Button" parent="PlayerInterface" unique_id=964795506]
@@ -100,9 +106,14 @@ offset_right = -440.0
 offset_bottom = 64.0
 tooltip_text = "Pick up to 3 random number cards from the discard pile once per round."
 theme = ExtResource("2_kl0hw")
-theme_override_styles/normal = ExtResource("3_67vji")
-theme_override_styles/hover = ExtResource("3_67vji")
-theme_override_styles/disabled = ExtResource("3_67vji")
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_bhh2s")
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = ExtResource("4_64sdq")
+theme_override_styles/pressed = ExtResource("5_ormek")
+theme_override_styles/hover = ExtResource("5_ormek")
+theme_override_styles/disabled = ExtResource("5_ormek")
 disabled = true
 text = "Pickup"
 
@@ -118,19 +129,19 @@ vertical_alignment = 1
 
 [node name="UI" type="Control" parent="." unique_id=497827540]
 anchors_preset = 0
-offset_left = 393.0
+offset_left = 448.0
 offset_top = 399.0
-offset_right = 1545.0
+offset_right = 1408.0
 offset_bottom = 639.0
 mouse_filter = 2
 
 [node name="Timer" type="Label" parent="UI" unique_id=1000903203]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_left = 769.0
-offset_top = 73.0
-offset_right = 961.0
-offset_bottom = 140.0
+offset_left = 390.0
+offset_top = 246.0
+offset_right = 582.0
+offset_bottom = 313.0
 theme_override_font_sizes/font_size = 48
 text = "TIMER"
 horizontal_alignment = 1
@@ -139,10 +150,10 @@ autowrap_mode = 3
 
 [node name="Round" type="Label" parent="UI" unique_id=549880970]
 layout_mode = 0
-offset_left = 217.0
-offset_top = -124.0
-offset_right = 857.0
-offset_bottom = -60.0
+offset_left = 160.0
+offset_top = -127.0
+offset_right = 800.0
+offset_bottom = -63.0
 theme_override_font_sizes/font_size = 24
 text = "ROUND 0"
 horizontal_alignment = 1
@@ -152,10 +163,10 @@ autowrap_mode = 3
 [node name="Info" type="Label" parent="UI" unique_id=1318845698]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_left = -23.0
-offset_top = 277.0
-offset_right = 1129.0
-offset_bottom = 389.0
+offset_left = -80.0
+offset_top = 274.0
+offset_right = 1072.0
+offset_bottom = 386.0
 theme_override_font_sizes/font_size = 24
 text = "TEXT HERE"
 horizontal_alignment = 1
@@ -165,10 +176,10 @@ autowrap_mode = 3
 [node name="TargetNumber" type="Label" parent="UI" unique_id=1222852682]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 0
-offset_left = 464.0
-offset_top = 34.0
-offset_right = 613.0
-offset_bottom = 207.0
+offset_left = 407.0
+offset_top = 31.0
+offset_right = 556.0
+offset_bottom = 204.0
 theme_override_font_sizes/font_size = 128
 text = "?"
 horizontal_alignment = 1
@@ -178,10 +189,10 @@ autowrap_mode = 3
 [node name="TargetText" type="Label" parent="UI" unique_id=349286069]
 custom_minimum_size = Vector2(80, 40)
 layout_mode = 0
-offset_left = 427.0
-offset_top = -35.0
-offset_right = 667.0
-offset_bottom = 5.0
+offset_left = 370.0
+offset_top = -38.0
+offset_right = 610.0
+offset_bottom = 2.0
 theme_override_font_sizes/font_size = 24
 text = "Target Number"
 horizontal_alignment = 1

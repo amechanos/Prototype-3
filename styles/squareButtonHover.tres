@@ -1,0 +1,7 @@
+[gd_resource type="StyleBoxTexture" format=3 uid="uid://drufuir8qhepa"]
+
+[ext_resource type="Texture2D" uid="uid://d1vlneo5bby7o" path="res://styles/squareButton.png" id="1_0gbpt"]
+
+[resource]
+texture = ExtResource("1_0gbpt")
+modulate_color = Color(0.75, 0.75, 0.75, 1)

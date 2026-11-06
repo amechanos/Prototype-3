@@ -213,7 +213,7 @@ func _update_players() -> void:
 	var player_names := ["You (ID %d)" % multiplayer.get_unique_id()]
 	for peer_id in remote_ids:
 		player_names.append("Player ID %d" % peer_id)
-	players_label.text = "Players (%d/2):\n%s" % [
+	players_label.text = "Players (%d/2): %s" % [
 		remote_ids.size() + 1,
 		"\n".join(player_names)
 	]

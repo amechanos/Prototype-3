@@ -101,9 +101,7 @@ var _heat_overlay: TextureRect
 
 func _ready() -> void: 
 	_build_table_look()
-	_tidy_ui()
 	_prepare_hand_rows()
-	_style_table_text()
 	_add_heat_overlay()
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	playerHeading.hide()
@@ -1144,58 +1142,3 @@ func _add_heat_overlay() -> void:
 	_heat_overlay.modulate.a = 0.0
 	add_child(_heat_overlay)
 	_heat_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-
-
-func _style_table_text() -> void:
-	target_num_label.add_theme_color_override("font_outline_color", Color(0.12, 0.0, 0.0))
-	target_num_label.add_theme_constant_override("outline_size", 10)
-	information.add_theme_font_size_override("font_size", 24)
-	equation_label.add_theme_font_size_override("font_size", 26)
-	for heading in [playerHeading, opponentHeading]:
-		heading.add_theme_font_size_override("font_size", 30)
-	submit_button.add_theme_font_size_override("font_size", 32)
-	pickup_button.add_theme_font_size_override("font_size", 26)
-
-
-func _tidy_ui() -> void:
-	var box := VBoxContainer.new()
-	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 8)
-	add_child(box)
-	box.anchor_left = 0.5
-	box.anchor_right = 0.5
-	box.anchor_top = 0.5
-	box.anchor_bottom = 0.5
-	box.offset_left = -450.0
-	box.offset_right = 450.0
-	box.offset_top = -300.0
-	box.offset_bottom = -270.0
-	box.grow_vertical = Control.GROW_DIRECTION_END
-
-	# Find the static "Target Number" title label so it joins the column.
-	var target_title: Label = null
-	for node in $UI.find_children("*", "Label", true, false):
-		var label := node as Label
-		if label != target_num_label and label.text.strip_edges() == "Target Number":
-			target_title = label
-
-	var ordered: Array[Label] = [round_counter, timer_label]
-	if target_title != null:
-		ordered.append(target_title)
-	ordered.append(target_num_label)
-	ordered.append(information)
-
-	for label in ordered:
-		label.reparent(box)
-		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if label != information:
-			label.autowrap_mode = TextServer.AUTOWRAP_OFF
-	information.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-
-	round_counter.add_theme_font_size_override("font_size", 32)
-	timer_label.add_theme_font_size_override("font_size", 44)
-	timer_label.custom_minimum_size = Vector2(0, 56)
-	if target_title != null:
-		target_title.add_theme_font_size_override("font_size", 28)
-	target_num_label.add_theme_font_size_override("font_size", 110)

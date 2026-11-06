@@ -52,7 +52,6 @@ var current_turn_id := 1
 
 
 func _ready() -> void:
-	_style_board_ui()
 	randomize()
 	if not _load_card_resources():
 		return
@@ -482,33 +481,3 @@ func _get_card_name_by_id(card_id: int) -> String:
 	if card_name.is_valid_int():
 		return card_name
 	return card_name.capitalize()
-
-func _style_board_ui() -> void:
-	board_grid.add_theme_constant_override("h_separation", int(BOARD_GAP))
-	board_grid.add_theme_constant_override("v_separation", int(BOARD_GAP))
-	board_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	board_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	your_deck_flow.add_theme_constant_override("h_separation", 8)
-	your_deck_flow.add_theme_constant_override("v_separation", 8)
-
-	var deck_scroll := find_child("YourDeckScroll", true, false) as Control
-	if deck_scroll != null:
-		deck_scroll.custom_minimum_size.y = 312.0
-
-	var draw_row := draw_three_button.get_parent() as Control
-	if draw_row != null:
-		draw_row.custom_minimum_size.y = 64.0
-
-	turn_label.add_theme_font_size_override("font_size", 38)
-
-	var heading := find_child("YourDeckHeading", true, false) as Label
-	if heading != null:
-		heading.add_theme_font_size_override("font_size", 34)
-
-	status_label.add_theme_font_size_override("font_size", 22)
-	your_deck_count_label.add_theme_font_size_override("font_size", 22)
-	board_count_label.add_theme_font_size_override("font_size", 22)
-
-	draw_three_button.custom_minimum_size = Vector2(300, 64)
-	draw_three_button.add_theme_font_size_override("font_size", 28)
-	start_game_button.add_theme_font_size_override("font_size", 30)

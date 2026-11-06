@@ -32,7 +32,6 @@ window/stretch/aspect="expand"
 
 [gui]
 
-theme/custom="uid://brpv3fl7mj1j"
 theme/custom_font="uid://diiok1efggv4y"
 
 [input_devices]

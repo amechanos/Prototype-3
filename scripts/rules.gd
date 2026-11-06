@@ -2,13 +2,15 @@ extends RefCounted
 
 const TARGET_WEIGHTS := {
 	12: 0.025,
-	15: 0.125,
-	18: 0.225,
-	21: 0.250,
-	24: 0.225,
-	27: 0.125,
-	30: 0.025,
+	15: 0.124,
+	18: 0.223,
+	21: 0.248,
+	24: 0.223,
+	27: 0.124,
+	30: 0.026,
+	48: 0.007, # Rare high-value target (0.7%)
 }
+
 const KING_MIN := 1
 const KING_MAX := 10
 const JACK_DELTA := 3
