@@ -1,9 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://4fhnhk28s748"]
+[gd_scene format=3 uid="uid://4fhnhk28s748"]
 
-[ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://table.gd" id="1_jd0nb"]
-[ext_resource type="Texture2D" uid="uid://c5c72uh42q8xd" path="res://Assets/bg.png" id="2_v5i0k"]
+[ext_resource type="Script" uid="uid://p664m5vfmu3x" path="res://scripts/table.gd" id="1_jd0nb"]
+[ext_resource type="Texture2D" uid="uid://bxhwqrq56hd3v" path="res://Assets/TableTexture.png" id="2_v5i0k"]
+[ext_resource type="FontFile" uid="uid://citdvsfgf06s8" path="res://styles/JimNightshade-Regular.ttf" id="3_bhh2s"]
+[ext_resource type="Texture2D" uid="uid://coie3jsr7s547" path="res://Assets/BackcardStack.png" id="3_kl0hw"]
+[ext_resource type="StyleBox" uid="uid://bcsijextfb8q2" path="res://styles/mainButton.tres" id="4_64sdq"]
+[ext_resource type="StyleBox" uid="uid://1wf1m1rusw8f" path="res://styles/mainButtonHover.tres" id="5_ormek"]
 
-[node name="table" type="Control"]
+[node name="table" type="Control" unique_id=663337913]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -12,7 +16,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_jd0nb")
 
-[node name="playerCards" type="MarginContainer" parent="."]
+[node name="playerCards" type="MarginContainer" parent="." unique_id=1449315450]
 layout_mode = 0
 offset_left = 56.0
 offset_top = 776.0
@@ -23,25 +27,25 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="playerCards"]
+[node name="HandLayout" type="VBoxContainer" parent="playerCards" unique_id=434081517]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="HandHeading" type="Label" parent="playerCards/HandLayout"]
+[node name="HandHeading" type="Label" parent="playerCards/HandLayout" unique_id=2095084135]
 layout_mode = 2
 text = "Your hand. Click cards to select."
 
-[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout"]
+[node name="ScrollContainer" type="ScrollContainer" parent="playerCards/HandLayout" unique_id=1878413121]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="playerCards/HandLayout/ScrollContainer" unique_id=93507509]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="opponentCards" type="MarginContainer" parent="."]
+[node name="opponentCards" type="MarginContainer" parent="." unique_id=959865173]
 layout_mode = 0
 offset_left = 48.0
 offset_top = -40.0
@@ -52,49 +56,65 @@ theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 12
 
-[node name="HandLayout" type="VBoxContainer" parent="opponentCards"]
+[node name="HandLayout" type="VBoxContainer" parent="opponentCards" unique_id=1657821315]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ScrollContainer" type="ScrollContainer" parent="opponentCards/HandLayout"]
+[node name="ScrollContainer" type="ScrollContainer" parent="opponentCards/HandLayout" unique_id=1335032776]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="opponentCards/HandLayout/ScrollContainer" unique_id=320782919]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HandHeading" type="Label" parent="opponentCards/HandLayout"]
+[node name="HandHeading" type="Label" parent="opponentCards/HandLayout" unique_id=668575446]
 layout_mode = 2
 text = "Your Opponent"
 
-[node name="PlayerInterface" type="Control" parent="."]
+[node name="PlayerInterface" type="Control" parent="." unique_id=71561902]
 anchors_preset = 0
 offset_left = 688.0
 offset_top = 704.0
 offset_right = 688.0
 offset_bottom = 704.0
 
-[node name="Submit" type="Button" parent="PlayerInterface"]
+[node name="Submit" type="Button" parent="PlayerInterface" unique_id=345619107]
 layout_mode = 0
 offset_left = 912.0
 offset_top = 64.0
 offset_right = 1104.0
 offset_bottom = 128.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_bhh2s")
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = ExtResource("4_64sdq")
+theme_override_styles/pressed = ExtResource("5_ormek")
+theme_override_styles/hover = ExtResource("5_ormek")
+theme_override_styles/disabled = ExtResource("5_ormek")
 text = "Submit"
 
-[node name="Pickup" type="Button" parent="PlayerInterface"]
+[node name="Pickup" type="Button" parent="PlayerInterface" unique_id=964795506]
 layout_mode = 0
 offset_left = -624.0
 offset_right = -440.0
 offset_bottom = 64.0
 tooltip_text = "Pick up to 3 random number cards from the discard pile once per round."
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("3_bhh2s")
+theme_override_font_sizes/font_size = 32
+theme_override_styles/normal = ExtResource("4_64sdq")
+theme_override_styles/pressed = ExtResource("5_ormek")
+theme_override_styles/hover = ExtResource("5_ormek")
+theme_override_styles/disabled = ExtResource("5_ormek")
 disabled = true
 text = "Pickup"
 
-[node name="EQDisplay" type="Label" parent="PlayerInterface"]
+[node name="EQDisplay" type="Label" parent="PlayerInterface" unique_id=1026275970]
 layout_mode = 0
 offset_left = -354.0
 offset_top = 64.0
@@ -104,78 +124,79 @@ theme_override_font_sizes/font_size = 24
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="UI" type="Control" parent="."]
+[node name="UI" type="Control" parent="." unique_id=497827540]
 anchors_preset = 0
-offset_left = 384.0
-offset_top = 392.0
-offset_right = 1536.0
-offset_bottom = 632.0
+offset_left = 448.0
+offset_top = 399.0
+offset_right = 1408.0
+offset_bottom = 639.0
 mouse_filter = 2
 
-[node name="Timer" type="Label" parent="UI"]
+[node name="Timer" type="Label" parent="UI" unique_id=1000903203]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_left = 480.0
-offset_top = 32.0
-offset_right = 672.0
-offset_bottom = 99.0
+offset_left = 883.0
+offset_top = 28.0
+offset_right = 1075.0
+offset_bottom = 95.0
 theme_override_font_sizes/font_size = 48
 text = "TIMER"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Round" type="Label" parent="UI"]
+[node name="Round" type="Label" parent="UI" unique_id=549880970]
 layout_mode = 0
-offset_left = 256.0
-offset_top = -8.0
-offset_right = 896.0
-offset_bottom = 56.0
+offset_left = 160.0
+offset_top = -127.0
+offset_right = 800.0
+offset_bottom = -63.0
 theme_override_font_sizes/font_size = 24
 text = "ROUND 0"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="Info" type="Label" parent="UI"]
+[node name="Info" type="Label" parent="UI" unique_id=1318845698]
 custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
-offset_top = 264.0
-offset_right = 1152.0
-offset_bottom = 376.0
+offset_left = -80.0
+offset_top = 274.0
+offset_right = 1072.0
+offset_bottom = 386.0
 theme_override_font_sizes/font_size = 24
 text = "TEXT HERE"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="TargetNumber" type="Label" parent="UI"]
+[node name="TargetNumber" type="Label" parent="UI" unique_id=1222852682]
 custom_minimum_size = Vector2(120, 80)
 layout_mode = 0
-offset_left = 512.0
-offset_top = 104.0
-offset_right = 640.0
-offset_bottom = 279.0
+offset_left = 407.0
+offset_top = 31.0
+offset_right = 556.0
+offset_bottom = 204.0
 theme_override_font_sizes/font_size = 128
 text = "?"
 horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="TargetText" type="Label" parent="UI"]
+[node name="TargetText" type="Label" parent="UI" unique_id=349286069]
 custom_minimum_size = Vector2(80, 40)
 layout_mode = 0
-offset_left = 456.0
-offset_top = 96.0
-offset_right = 696.0
-offset_bottom = 136.0
+offset_left = 370.0
+offset_top = -38.0
+offset_right = 610.0
+offset_bottom = 2.0
 theme_override_font_sizes/font_size = 24
 text = "Target Number"
 horizontal_alignment = 1
 vertical_alignment = 2
 autowrap_mode = 3
 
-[node name="BG" type="TextureRect" parent="."]
+[node name="BG" type="TextureRect" parent="." unique_id=1312426982]
 show_behind_parent = true
 layout_mode = 0
 offset_right = 1920.0
@@ -185,6 +206,11 @@ texture = ExtResource("2_v5i0k")
 expand_mode = 2
 stretch_mode = 5
 metadata/_edit_lock_ = true
+
+[node name="BackcardStack" type="Sprite2D" parent="." unique_id=103361275]
+position = Vector2(158, 560)
+scale = Vector2(0.29666662, 0.29666662)
+texture = ExtResource("3_kl0hw")
 
 [connection signal="pressed" from="PlayerInterface/Submit" to="." method="_on_submit_pressed"]
 [connection signal="pressed" from="PlayerInterface/Pickup" to="." method="_on_pickup_pressed"]

@@ -1,8 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://bt4h54dm4elj8"]
+[gd_scene format=3 uid="uid://bt4h54dm4elj8"]
 
-[ext_resource type="Script" uid="uid://b6g3biyyxyk3i" path="res://board.gd" id="1_p0ybc"]
+[ext_resource type="Script" uid="uid://b6g3biyyxyk3i" path="res://scripts/board.gd" id="1_p0ybc"]
+[ext_resource type="Texture2D" uid="uid://hfoouawwpu4v" path="res://Assets/TableTextureNoTarget.png" id="1_psm7c"]
+[ext_resource type="FontFile" uid="uid://citdvsfgf06s8" path="res://styles/JimNightshade-Regular.ttf" id="4_mgc1s"]
+[ext_resource type="StyleBox" uid="uid://bcsijextfb8q2" path="res://styles/mainButton.tres" id="5_rq8yp"]
+[ext_resource type="StyleBox" uid="uid://1wf1m1rusw8f" path="res://styles/mainButtonHover.tres" id="6_tngv2"]
 
-[node name="board" type="Control"]
+[node name="board" type="Control" unique_id=1858233193]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +15,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_p0ybc")
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1326551160]
+layout_mode = 0
+offset_right = 1920.0
+offset_bottom = 1080.0
+mouse_filter = 2
+texture = ExtResource("1_psm7c")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=1289284442]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -27,78 +38,102 @@ theme_override_constants/margin_top = 8
 theme_override_constants/margin_right = 8
 theme_override_constants/margin_bottom = 8
 
-[node name="Layout" type="VBoxContainer" parent="MarginContainer"]
+[node name="Layout" type="VBoxContainer" parent="MarginContainer" unique_id=275104128]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Counts" type="HBoxContainer" parent="MarginContainer/Layout"]
+[node name="Counts" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=2071236947]
 layout_mode = 2
 theme_override_constants/separation = 24
 
-[node name="YourDeckCount" type="Label" parent="MarginContainer/Layout/Counts"]
+[node name="YourDeckCount" type="Label" parent="MarginContainer/Layout/Counts" unique_id=1608948180]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Cards in your deck: 0"
 
-[node name="BoardCount" type="Label" parent="MarginContainer/Layout/Counts"]
+[node name="BoardCount" type="Label" parent="MarginContainer/Layout/Counts" unique_id=1290695263]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Cards on board: 50"
 
-[node name="TurnLabel" type="Label" parent="MarginContainer/Layout"]
+[node name="TurnLabel" type="Label" parent="MarginContainer/Layout" unique_id=775729790]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Your turn"
 
-[node name="DrawOptions" type="HBoxContainer" parent="MarginContainer/Layout"]
+[node name="DrawOptions" type="HBoxContainer" parent="MarginContainer/Layout" unique_id=1992282029]
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="DrawThreeButton" type="Button" parent="MarginContainer/Layout/DrawOptions"]
+[node name="DrawThreeButton" type="Button" parent="MarginContainer/Layout/DrawOptions" unique_id=765437192]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 42)
+custom_minimum_size = Vector2(256, 42)
 layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("4_mgc1s")
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = ExtResource("5_rq8yp")
+theme_override_styles/pressed = ExtResource("6_tngv2")
+theme_override_styles/hover = ExtResource("6_tngv2")
+theme_override_styles/disabled = ExtResource("6_tngv2")
 text = "Draw 3 face-down cards"
 
-[node name="Status" type="Label" parent="MarginContainer/Layout"]
+[node name="Status" type="Label" parent="MarginContainer/Layout" unique_id=539634013]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Choose cards to add them to your deck."
 
-[node name="BoardScroll" type="ScrollContainer" parent="MarginContainer/Layout"]
+[node name="BoardScroll" type="ScrollContainer" parent="MarginContainer/Layout" unique_id=204652946]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="BoardGrid" type="GridContainer" parent="MarginContainer/Layout/BoardScroll"]
+[node name="BoardGrid" type="GridContainer" parent="MarginContainer/Layout/BoardScroll" unique_id=2043014130]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
-[node name="YourDeckHeading" type="Label" parent="MarginContainer/Layout"]
+[node name="YourDeckHeading" type="Label" parent="MarginContainer/Layout" unique_id=1087756082]
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Your deck"
 
-[node name="YourDeckScroll" type="ScrollContainer" parent="MarginContainer/Layout"]
-custom_minimum_size = Vector2(0, 110)
+[node name="YourDeckScroll" type="ScrollContainer" parent="MarginContainer/Layout" unique_id=1132528428]
+custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="YourDeckFlow" type="HFlowContainer" parent="MarginContainer/Layout/YourDeckScroll"]
+[node name="YourDeckFlow" type="HFlowContainer" parent="MarginContainer/Layout/YourDeckScroll" unique_id=760690185]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 
-[node name="StartGame" type="Button" parent="."]
+[node name="StartGame" type="Button" parent="." unique_id=1198813902]
 layout_mode = 0
 offset_left = 1696.0
 offset_top = 112.0
 offset_right = 1888.0
 offset_bottom = 261.0
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
+theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
+theme_override_colors/font_hover_pressed_color = Color(0, 0, 0, 1)
+theme_override_colors/font_disabled_color = Color(0, 0, 0, 1)
+theme_override_fonts/font = ExtResource("4_mgc1s")
+theme_override_font_sizes/font_size = 28
+theme_override_styles/normal = ExtResource("5_rq8yp")
+theme_override_styles/pressed = ExtResource("6_tngv2")
+theme_override_styles/hover = ExtResource("6_tngv2")
+theme_override_styles/disabled = ExtResource("6_tngv2")
 disabled = true
 text = "Start Game"
 

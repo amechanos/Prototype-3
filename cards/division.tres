@@ -1,8 +1,10 @@
 [gd_resource type="Resource" format=3 uid="uid://ckjp81h6evuxh"]
 
-[ext_resource type="Script" uid="uid://coaap13sodfub" path="res://card.gd" id="1_ucfm0"]
+[ext_resource type="Script" uid="uid://coaap13sodfub" path="res://scripts/card.gd" id="1_ucfm0"]
+[ext_resource type="Texture2D" uid="uid://bbqqlxbvx158i" path="res://Assets/cards/Division.png" id="2_nso4q"]
 
 [resource]
 resource_local_to_scene = true
 script = ExtResource("1_ucfm0")
 data = 7
+texture = ExtResource("2_nso4q")
